@@ -1,0 +1,713 @@
+/*
+ * Filament Media Library — self-contained stylesheet.
+ *
+ * Deliberately plain CSS, shipped pre-built and registered through
+ * FilamentAsset. A package cannot rely on Tailwind utilities: the host
+ * application's Tailwind build never scans vendor/ views, so utility classes
+ * used here would simply not exist in the compiled CSS, and dynamic class
+ * names (text-{color}-500) could never be generated at all.
+ *
+ * Colours follow Filament's CSS custom properties where they exist and fall
+ * back to literal values everywhere else, so the plugin looks correct in any
+ * panel, with or without a custom theme, in light and dark mode.
+ */
+
+.fml {
+    --fml-border: rgb(229 231 235);
+    --fml-surface: rgb(255 255 255);
+    --fml-muted-surface: rgb(249 250 251);
+    --fml-text: rgb(17 24 39);
+    --fml-text-muted: rgb(107 114 128);
+    --fml-accent: rgb(var(--primary-600, 37 99 235));
+    --fml-accent-contrast: rgb(255 255 255);
+    --fml-danger: rgb(220 38 38);
+    --fml-success: rgb(22 163 74);
+    --fml-radius: 0.75rem;
+}
+
+.dark .fml {
+    --fml-border: rgb(255 255 255 / 0.1);
+    --fml-surface: rgb(17 24 39);
+    --fml-muted-surface: rgb(255 255 255 / 0.05);
+    --fml-text: rgb(255 255 255);
+    --fml-text-muted: rgb(156 163 175);
+    --fml-accent: rgb(var(--primary-500, 59 130 246));
+}
+
+/* ------------------------------------------------------------------ layout */
+
+.fml__layout {
+    display: grid;
+    grid-template-columns: minmax(0, 260px) minmax(0, 1fr);
+    gap: 1rem;
+    align-items: start;
+}
+
+.fml__layout--with-detail {
+    grid-template-columns: minmax(0, 240px) minmax(0, 1fr) minmax(0, 320px);
+}
+
+@media (max-width: 1279px) {
+    .fml__layout,
+    .fml__layout--with-detail {
+        grid-template-columns: minmax(0, 220px) minmax(0, 1fr);
+    }
+
+    .fml__layout--with-detail .fml__detail {
+        grid-column: 1 / -1;
+    }
+}
+
+@media (max-width: 767px) {
+    .fml__layout,
+    .fml__layout--with-detail {
+        grid-template-columns: minmax(0, 1fr);
+    }
+}
+
+.fml__main {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    min-width: 0;
+}
+
+.fml__sidebar {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    min-width: 0;
+}
+
+/* ------------------------------------------------------------------- panel */
+
+.fml__panel {
+    background: var(--fml-surface);
+    border: 1px solid var(--fml-border);
+    border-radius: var(--fml-radius);
+    color: var(--fml-text);
+}
+
+.fml__panel--padded {
+    padding: 1rem;
+}
+
+.fml__panel-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem;
+    padding: 0.75rem 1rem;
+    border-bottom: 1px solid var(--fml-border);
+}
+
+.fml__label {
+    font-size: 0.6875rem;
+    font-weight: 600;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    color: var(--fml-text-muted);
+}
+
+.fml__hint {
+    font-size: 0.75rem;
+    color: var(--fml-text-muted);
+    margin-top: 0.5rem;
+}
+
+/* ------------------------------------------------------------------ inputs */
+
+.fml__input,
+.fml__select,
+.fml__textarea {
+    width: 100%;
+    border: 1px solid var(--fml-border);
+    border-radius: 0.5rem;
+    background: var(--fml-surface);
+    color: var(--fml-text);
+    font-size: 0.875rem;
+    padding: 0.5rem 0.625rem;
+    line-height: 1.25rem;
+}
+
+.fml__input:focus,
+.fml__select:focus,
+.fml__textarea:focus {
+    outline: 2px solid var(--fml-accent);
+    outline-offset: -1px;
+}
+
+.fml__input--readonly {
+    background: var(--fml-muted-surface);
+    font-size: 0.75rem;
+}
+
+.fml__search {
+    position: relative;
+    flex: 1 1 16rem;
+    min-width: 12rem;
+}
+
+.fml__search .fml__search-icon {
+    position: absolute;
+    left: 0.625rem;
+    top: 50%;
+    width: 1rem;
+    height: 1rem;
+    transform: translateY(-50%);
+    color: var(--fml-text-muted);
+    pointer-events: none;
+}
+
+.fml__search .fml__input {
+    padding-left: 2.25rem;
+}
+
+/* ----------------------------------------------------------------- buttons */
+
+.fml__btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.375rem;
+    border: 1px solid transparent;
+    border-radius: 0.5rem;
+    padding: 0.5rem 0.875rem;
+    font-size: 0.8125rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: background-color 120ms ease, opacity 120ms ease;
+    white-space: nowrap;
+}
+
+.fml__btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.fml__btn--primary {
+    background: var(--fml-accent);
+    color: var(--fml-accent-contrast);
+}
+
+.fml__btn--success {
+    background: var(--fml-success);
+    color: #fff;
+}
+
+.fml__btn--danger {
+    background: var(--fml-danger);
+    color: #fff;
+}
+
+.fml__btn--ghost {
+    background: transparent;
+    border-color: var(--fml-border);
+    color: var(--fml-text);
+}
+
+.fml__btn--ghost:hover {
+    background: var(--fml-muted-surface);
+}
+
+.fml__btn--link {
+    background: none;
+    border: none;
+    padding: 0;
+    color: var(--fml-accent);
+    font-size: 0.75rem;
+    cursor: pointer;
+}
+
+.fml__btn--link:hover {
+    text-decoration: underline;
+}
+
+.fml__btn--block {
+    width: 100%;
+}
+
+.fml__btn--icon {
+    padding: 0.375rem 0.5rem;
+}
+
+/* ---------------------------------------------------------------- toolbars */
+
+.fml__toolbar {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.75rem;
+}
+
+.fml__toolbar-spacer {
+    margin-left: auto;
+}
+
+.fml__viewtoggle {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+    padding: 0.25rem;
+    border: 1px solid var(--fml-border);
+    border-radius: 0.5rem;
+}
+
+.fml__viewtoggle button {
+    border: none;
+    background: none;
+    border-radius: 0.375rem;
+    padding: 0.25rem 0.5rem;
+    color: var(--fml-text-muted);
+    cursor: pointer;
+}
+
+.fml__viewtoggle button.is-active {
+    background: var(--fml-accent);
+    color: var(--fml-accent-contrast);
+}
+
+/* ----------------------------------------------------------------- folders */
+
+.fml__folders {
+    max-height: 60vh;
+    overflow-y: auto;
+    padding: 0.5rem;
+    margin: 0;
+    list-style: none;
+    font-size: 0.875rem;
+}
+
+.fml__folder {
+    display: flex;
+    width: 100%;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.375rem 0.5rem;
+    border: none;
+    border-radius: 0.5rem;
+    background: none;
+    color: var(--fml-text);
+    text-align: left;
+    cursor: pointer;
+}
+
+.fml__folder:hover {
+    background: var(--fml-muted-surface);
+}
+
+.fml__folder.is-active {
+    background: color-mix(in srgb, var(--fml-accent) 12%, transparent);
+    color: var(--fml-accent);
+    font-weight: 600;
+}
+
+.fml__folder-name {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+/* -------------------------------------------------------------------- grid */
+
+.fml__grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+    gap: 0.75rem;
+}
+
+.fml__card {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    border: 1px solid var(--fml-border);
+    border-radius: var(--fml-radius);
+    background: var(--fml-surface);
+    transition: box-shadow 120ms ease, border-color 120ms ease;
+}
+
+.fml__card:hover {
+    box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.1);
+}
+
+.fml__card.is-selected {
+    border-color: var(--fml-accent);
+    box-shadow: 0 0 0 2px var(--fml-accent);
+}
+
+.fml__card-check {
+    position: absolute;
+    left: 0.5rem;
+    top: 0.5rem;
+    z-index: 10;
+    display: inline-flex;
+    width: 1.5rem;
+    height: 1.5rem;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid var(--fml-border);
+    border-radius: 0.375rem;
+    background: color-mix(in srgb, var(--fml-surface) 90%, transparent);
+    opacity: 0;
+    cursor: pointer;
+    transition: opacity 120ms ease;
+}
+
+.fml__card:hover .fml__card-check,
+.fml__card.is-selected .fml__card-check {
+    opacity: 1;
+}
+
+.fml__card.is-selected .fml__card-check {
+    background: var(--fml-accent);
+    border-color: var(--fml-accent);
+    color: var(--fml-accent-contrast);
+}
+
+.fml__card-thumb {
+    position: relative;
+    display: block;
+    width: 100%;
+    aspect-ratio: 1 / 1;
+    overflow: hidden;
+    border: none;
+    padding: 0;
+    background: var(--fml-muted-surface);
+    cursor: pointer;
+}
+
+.fml__card-thumb img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.fml__card-fallback {
+    display: flex;
+    height: 100%;
+    width: 100%;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+}
+
+.fml__card-fallback span {
+    font-size: 0.6875rem;
+    font-weight: 500;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+}
+
+.fml__card-caption {
+    position: absolute;
+    inset-inline: 0;
+    bottom: 0;
+    padding: 0.5rem 0.625rem;
+    background: linear-gradient(to top, rgb(0 0 0 / 0.7), transparent);
+    pointer-events: none;
+}
+
+.fml__card-caption p {
+    margin: 0;
+    font-size: 0.6875rem;
+    font-weight: 500;
+    color: #fff;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.fml__card-meta {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.25rem;
+    padding: 0.25rem 0.5rem;
+    border-top: 1px solid var(--fml-border);
+    font-size: 0.6875rem;
+    color: var(--fml-text-muted);
+}
+
+/* ------------------------------------------------------------------- table */
+
+.fml__table-wrap {
+    overflow-x: auto;
+    border: 1px solid var(--fml-border);
+    border-radius: var(--fml-radius);
+    background: var(--fml-surface);
+}
+
+.fml__table {
+    width: 100%;
+    min-width: 40rem;
+    border-collapse: collapse;
+    font-size: 0.875rem;
+    color: var(--fml-text);
+}
+
+.fml__table thead {
+    background: var(--fml-muted-surface);
+}
+
+.fml__table th {
+    padding: 0.5rem 0.75rem;
+    text-align: left;
+    font-size: 0.6875rem;
+    font-weight: 600;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    color: var(--fml-text-muted);
+}
+
+.fml__table td {
+    padding: 0.5rem 0.75rem;
+    border-top: 1px solid var(--fml-border);
+    vertical-align: middle;
+}
+
+.fml__table tbody tr {
+    cursor: pointer;
+}
+
+.fml__table tbody tr:hover {
+    background: var(--fml-muted-surface);
+}
+
+.fml__table tbody tr.is-selected {
+    background: color-mix(in srgb, var(--fml-accent) 10%, transparent);
+}
+
+.fml__row-file {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    min-width: 0;
+}
+
+.fml__row-thumb {
+    width: 2.5rem;
+    height: 2.5rem;
+    flex-shrink: 0;
+    overflow: hidden;
+    border-radius: 0.375rem;
+    background: var(--fml-muted-surface);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.fml__row-thumb img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.fml__row-names {
+    min-width: 0;
+}
+
+.fml__row-names p {
+    margin: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.fml__row-names p:first-child {
+    font-weight: 500;
+}
+
+.fml__row-names p:last-child {
+    font-size: 0.75rem;
+    color: var(--fml-text-muted);
+}
+
+.fml__muted {
+    color: var(--fml-text-muted);
+}
+
+/* ---------------------------------------------------------------- dropzone */
+
+.fml__dropzone {
+    position: relative;
+    border: 2px dashed var(--fml-border);
+    border-radius: var(--fml-radius);
+    background: var(--fml-muted-surface);
+    padding: 1rem;
+    transition: border-color 120ms ease, box-shadow 120ms ease;
+}
+
+.fml__dropzone.is-active {
+    border-color: var(--fml-accent);
+    box-shadow: 0 0 0 2px color-mix(in srgb, var(--fml-accent) 40%, transparent);
+}
+
+.fml__dropzone-inner {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.fml__dropzone-hint {
+    font-size: 0.8125rem;
+    color: var(--fml-text-muted);
+}
+
+.fml__dropzone-overlay {
+    position: absolute;
+    inset: 0;
+    align-items: center;
+    justify-content: center;
+    border-radius: var(--fml-radius);
+    background: color-mix(in srgb, var(--fml-surface) 85%, transparent);
+    backdrop-filter: blur(2px);
+    font-size: 0.875rem;
+    font-weight: 500;
+    color: var(--fml-accent);
+}
+
+.fml__file-input {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+}
+
+/* ------------------------------------------------------------------- empty */
+
+.fml__empty {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    padding: 3rem 1rem;
+    border: 1px dashed var(--fml-border);
+    border-radius: var(--fml-radius);
+    background: var(--fml-surface);
+    text-align: center;
+    color: var(--fml-text-muted);
+}
+
+/* ------------------------------------------------------------------ detail */
+
+.fml__detail {
+    position: sticky;
+    top: 1rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    padding: 1rem;
+    border: 1px solid var(--fml-border);
+    border-radius: var(--fml-radius);
+    background: var(--fml-surface);
+    color: var(--fml-text);
+}
+
+.fml__detail-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 0.5rem;
+}
+
+.fml__detail-header h3 {
+    margin: 0;
+    font-size: 0.875rem;
+    font-weight: 600;
+}
+
+.fml__detail-preview {
+    overflow: hidden;
+    border: 1px solid var(--fml-border);
+    border-radius: 0.5rem;
+    background: var(--fml-muted-surface);
+}
+
+.fml__detail-preview img,
+.fml__detail-preview video {
+    display: block;
+    width: 100%;
+    max-height: 18rem;
+    object-fit: contain;
+}
+
+.fml__detail-preview iframe {
+    width: 100%;
+    height: 18rem;
+    border: 0;
+}
+
+.fml__detail-preview audio {
+    width: 100%;
+    padding: 1rem;
+}
+
+.fml__detail-fallback {
+    display: flex;
+    height: 10rem;
+    align-items: center;
+    justify-content: center;
+}
+
+.fml__dl {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+    margin: 0;
+    font-size: 0.75rem;
+    color: var(--fml-text-muted);
+}
+
+.fml__dl > div {
+    display: flex;
+    justify-content: space-between;
+    gap: 0.5rem;
+}
+
+.fml__dl dt,
+.fml__dl dd {
+    margin: 0;
+}
+
+.fml__dl dd {
+    text-align: right;
+    color: var(--fml-text);
+    overflow-wrap: anywhere;
+}
+
+.fml__field {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+}
+
+.fml__inline {
+    display: flex;
+    gap: 0.25rem;
+}
+
+.fml__inline .fml__btn {
+    flex-shrink: 0;
+}
+
+.fml__divider {
+    border-top: 1px solid var(--fml-border);
+    padding-top: 0.75rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+[x-cloak] {
+    display: none !important;
+}

@@ -1,0 +1,31 @@
+name: static analysis
+
+on:
+  push:
+    paths: ['**.php', 'phpstan.neon.dist', '.github/workflows/phpstan.yml']
+  pull_request:
+    paths: ['**.php', 'phpstan.neon.dist', '.github/workflows/phpstan.yml']
+
+permissions:
+  contents: read
+
+jobs:
+  phpstan:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.3'
+          coverage: none
+
+      - name: Install dependencies
+        run: composer update --prefer-dist --no-interaction
+
+      - name: Run PHPStan
+        run: vendor/bin/phpstan analyse --error-format=github --no-progress
