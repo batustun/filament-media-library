@@ -10,6 +10,8 @@ use Batustun\FilamentMediaLibrary\Support\Authorize;
 use Batustun\FilamentMediaLibrary\Support\MediaLibraryConfig;
 use Filament\Actions\Action;
 use Filament\Actions\Contracts\HasActions;
+use Filament\Schemas\Contracts\HasSchemas;
+use Filament\Schemas\Schema;
 
 /**
  * Everything that changes something.
@@ -22,6 +24,55 @@ trait MutatesMedia
 {
     /** @var array<int, mixed>|null */
     public ?array $uploads = [];
+
+    /** @var array<string, mixed> State for the host application's file-info components. */
+    public array $fileInfoData = [];
+
+    /**
+     * Extra form components the host application registered for the file-info
+     * panel, as a real Filament schema so its fields validate and behave
+     * exactly like they would anywhere else in the panel.
+     */
+    public function fileInfoForm(Schema $schema): Schema
+    {
+        return $schema
+            ->components(MediaLibraryConfig::fileInfoComponents())
+            ->statePath('fileInfoData');
+    }
+
+    public function hasFileInfoForm(): bool
+    {
+        return $this instanceof HasSchemas && MediaLibraryConfig::fileInfoComponents() !== [];
+    }
+
+    /** Load the host application's values for the item now being previewed. */
+    protected function hydrateFileInfoForm(?Media $media): void
+    {
+        // Checked inline rather than through hasFileInfoForm() so the narrowing
+        // is visible to both the reader and static analysis: getSchema() only
+        // exists on a component that implements HasSchemas.
+        if (! $this instanceof HasSchemas || MediaLibraryConfig::fileInfoComponents() === []) {
+            return;
+        }
+
+        $hydrate = MediaLibraryConfig::plugin()?->getHydrateFileInfoCallback();
+
+        $this->fileInfoData = ($media !== null && $hydrate !== null)
+            ? (array) $hydrate($media)
+            : [];
+
+        $this->getSchema('fileInfoForm')?->fill($this->fileInfoData);
+    }
+
+    /** @return array<string, mixed> */
+    protected function fileInfoState(): array
+    {
+        if (! $this instanceof HasSchemas || MediaLibraryConfig::fileInfoComponents() === []) {
+            return [];
+        }
+
+        return $this->getSchema('fileInfoForm')?->getState() ?? [];
+    }
 
     protected function authorizeMediaAction(string $ability): void
     {
@@ -297,9 +348,10 @@ trait MutatesMedia
 
         $media->save();
 
-        // Anything the host application stores elsewhere gets its turn here.
+        // Anything the host application stores elsewhere gets its turn here,
+        // with the state of its own components merged in.
         if ($save = MediaLibraryConfig::plugin()?->getSaveFileInfoCallback()) {
-            $save($media, $payload);
+            $save($media, [...$payload, ...$this->fileInfoState()]);
         }
 
         return $media;

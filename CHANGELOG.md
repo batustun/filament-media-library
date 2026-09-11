@@ -7,6 +7,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.1.2] - 2026-09-12
+
+### Fixed
+- **`fileInfoComponents()` and `hydrateFileInfoUsing()` did nothing.** The
+  components were registered on the plugin but never rendered, and the hydrator
+  was never called, so a host application's extra fields silently never
+  appeared. They are now built as a real Filament schema, hydrated when an item
+  is previewed, and their state is merged into what `saveFileInfoUsing()`
+  receives.
+
+### Removed
+- The `tags.sync_spatie_tags` option, which was documented in the config but
+  never implemented. Tags are the library's own; nothing was mirrored anywhere.
+
 ## [1.1.1] - 2026-09-12
 
 ### Changed
@@ -131,7 +145,8 @@ First public release.
 - English, Turkish, German, French, Spanish, Italian, Dutch, Brazilian
   Portuguese, Russian and Arabic. RTL works without extra rules.
 
-[Unreleased]: https://github.com/batustun/filament-media-library/compare/v1.1.1...HEAD
+[Unreleased]: https://github.com/batustun/filament-media-library/compare/v1.1.2...HEAD
+[1.1.2]: https://github.com/batustun/filament-media-library/compare/v1.1.1...v1.1.2
 [1.1.1]: https://github.com/batustun/filament-media-library/compare/v1.1.0...v1.1.1
 [1.1.0]: https://github.com/batustun/filament-media-library/compare/v1.0.0...v1.1.0
 [1.0.0]: https://github.com/batustun/filament-media-library/releases/tag/v1.0.0

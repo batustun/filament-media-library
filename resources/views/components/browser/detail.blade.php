@@ -257,6 +257,10 @@
                     </div>
                 @endforeach
 
+                @if ($this->hasFileInfoForm())
+                    {{ $this->fileInfoForm }}
+                @endif
+
                 <x-filament::button size="sm" icon="heroicon-m-check" x-on:click="save()">
                     {{ __($t.'.actions.save_details') }}
                 </x-filament::button>

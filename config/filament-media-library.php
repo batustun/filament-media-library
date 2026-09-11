@@ -133,16 +133,12 @@ return [
     |--------------------------------------------------------------------------
     |
     | Free-form labels an editor can attach to any item, and filter the library
-    | by. Stored in their own table so filtering and counting are real queries.
-    |
-    | When `sync_spatie_tags` is on and spatie/laravel-tags is installed, tag
-    | names are mirrored into Spatie's table so the rest of the application can
-    | keep using whatever it already does.
+    | by. Stored in their own table so filtering and counting are real queries
+    | rather than JSON scans.
     |
     */
     'tags' => [
         'enabled' => true,
-        'sync_spatie_tags' => false,
     ],
 
     /*

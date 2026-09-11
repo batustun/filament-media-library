@@ -9,6 +9,7 @@ use Batustun\FilamentMediaLibrary\Tests\Fixtures\TestPanelProvider;
 use BladeUI\Heroicons\BladeHeroiconsServiceProvider;
 use BladeUI\Icons\BladeIconsServiceProvider;
 use Filament\Actions\ActionsServiceProvider;
+use Filament\Facades\Filament;
 use Filament\FilamentServiceProvider;
 use Filament\Forms\FormsServiceProvider;
 use Filament\Infolists\InfolistsServiceProvider;
@@ -34,6 +35,11 @@ abstract class TestCase extends Orchestra
         // share the bag ourselves — otherwise rendering any component fails.
         $this->startSession();
         view()->share('errors', new ViewErrorBag);
+
+        // Plugin settings are scoped to the panel being served. A real request
+        // gets that from Filament's SetUpPanel middleware, which does not run
+        // for a unit test — so the test panel is made current explicitly.
+        Filament::setCurrentPanel(Filament::getDefaultPanel());
 
         $this->artisan('migrate')->run();
     }

@@ -107,7 +107,7 @@ class FilamentMediaLibraryPlugin implements Plugin
         }
 
         $panel->pages([
-            $this->page,
+            $this->getMediaLibraryPage(),
         ]);
     }
 

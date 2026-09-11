@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 use Batustun\FilamentMediaLibrary\FilamentMediaLibraryPlugin;
 use Batustun\FilamentMediaLibrary\Support\MediaLibraryConfig;
+use Filament\Facades\Filament;
 
 it('exposes a stable plugin id', function () {
     expect(FilamentMediaLibraryPlugin::make()->getId())->toBe('filament-media-library');
@@ -31,10 +32,22 @@ it('keeps two plugin instances independent', function () {
         ->and($b->getDefaultDisk())->toBe('cdn');
 });
 
-it('falls back to the config file outside a panel', function () {
+it('falls back to the config file when the panel plugin sets nothing', function () {
     config()->set('filament-media-library.default_disk', 'cdn');
 
     expect(MediaLibraryConfig::defaultDisk())->toBe('cdn');
+});
+
+it('applies the panel plugin settings when a panel is being served', function () {
+    // The counterpart of the test above: with a panel current — which is what
+    // Filament's SetUpPanel middleware arranges for every panel and Livewire
+    // request — the plugin wins over the config file.
+    config()->set('filament-media-library.default_disk', 'cdn');
+
+    FilamentMediaLibraryPlugin::get()->defaultDisk('public');
+
+    expect(MediaLibraryConfig::plugin())->not->toBeNull()
+        ->and(MediaLibraryConfig::defaultDisk())->toBe('public');
 });
 
 it('trusts an explicit disk allow-list verbatim', function () {
@@ -51,8 +64,12 @@ it('trusts an explicit disk allow-list verbatim', function () {
 
 it('reads the config file, not the default panel, outside a panel request', function () {
     // Documented precedence: a plugin's settings apply to the panel it is
-    // registered on. A console command or a JSON route has no current panel,
-    // so the config file is the only source.
+    // registered on. A console command, a queued job or a JSON route has no
+    // current panel, so the config file is the only source. Filament's
+    // SetUpPanel middleware is what makes a panel current, and none of those
+    // contexts run it.
+    Filament::setCurrentPanel(null);
+
     config()->set('filament-media-library.permissions.enabled', true);
 
     expect(MediaLibraryConfig::plugin())->toBeNull()

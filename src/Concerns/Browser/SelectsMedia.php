@@ -70,6 +70,8 @@ trait SelectsMedia
     public function showDetail(string $id): void
     {
         $this->detailId = $id;
+
+        $this->hydrateFileInfoForm($this->detailRecord());
     }
 
     public function closeDetail(): void
