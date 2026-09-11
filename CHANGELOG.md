@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.1.1] - 2026-09-12
+
+### Changed
+- The media browser is composed from five focused concerns —
+  `InteractsWithMediaSources`, `BrowsesMediaFolders`, `FiltersMedia`,
+  `SelectsMedia` and `MutatesMedia` — instead of one 900-line trait. No public
+  API changed.
+
 ## [1.1.0] - 2026-09-12
 
 ### Added
@@ -123,6 +131,7 @@ First public release.
 - English, Turkish, German, French, Spanish, Italian, Dutch, Brazilian
   Portuguese, Russian and Arabic. RTL works without extra rules.
 
-[Unreleased]: https://github.com/batustun/filament-media-library/compare/v1.1.0...HEAD
+[Unreleased]: https://github.com/batustun/filament-media-library/compare/v1.1.1...HEAD
+[1.1.1]: https://github.com/batustun/filament-media-library/compare/v1.1.0...v1.1.1
 [1.1.0]: https://github.com/batustun/filament-media-library/compare/v1.0.0...v1.1.0
 [1.0.0]: https://github.com/batustun/filament-media-library/releases/tag/v1.0.0
