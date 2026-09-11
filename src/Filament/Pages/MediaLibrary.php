@@ -227,6 +227,31 @@ class MediaLibrary extends Page
             ->send();
     }
 
+    public function duplicateOne(string $id): void
+    {
+        if ($this->performDuplicate(app(MediaService::class), $id) === null) {
+            return;
+        }
+
+        Notification::make()
+            ->title(__('filament-media-library::filament-media-library.messages.duplicated'))
+            ->success()
+            ->send();
+    }
+
+    /** @param array<int, string> $names */
+    public function syncTags(string $id, array $names): void
+    {
+        if ($this->performSyncTags($id, $names) === null) {
+            return;
+        }
+
+        Notification::make()
+            ->title(__('filament-media-library::filament-media-library.messages.tags_updated'))
+            ->success()
+            ->send();
+    }
+
     public function copyUrlOf(string $id): ?string
     {
         return Media::query()

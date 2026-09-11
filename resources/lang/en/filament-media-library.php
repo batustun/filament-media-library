@@ -23,6 +23,14 @@ return [
     ],
 
     'actions' => [
+        'duplicate' => 'Duplicate',
+        'toggle_extensions' => 'Show file extensions',
+        'edit_image' => 'Edit image',
+        'crop' => 'Crop',
+        'rotate' => 'Rotate',
+        'flip_h' => 'Flip horizontally',
+        'flip_v' => 'Flip vertically',
+        'reset' => 'Reset',
         'select' => 'Select',
         'select_count' => 'Select (:count)',
         'select_prompt' => 'Select a file',
@@ -58,6 +66,8 @@ return [
     ],
 
     'fields' => [
+        'tags' => 'Tags',
+        'tags_hint' => 'Comma-separated',
         'uploaded_by' => 'Uploaded by',
         'status' => 'Status',
         'duration' => 'Duration',
@@ -85,6 +95,10 @@ return [
     ],
 
     'filters' => [
+        'tag' => 'Tag',
+        'all_tags' => 'All tags',
+        'size_min' => 'Min MB',
+        'size_max' => 'Max MB',
         'date_from' => 'From',
         'date_to' => 'To',
         'clear' => 'Clear filters',
@@ -100,6 +114,10 @@ return [
     ],
 
     'messages' => [
+        'duplicated' => 'Duplicated',
+        'tags_updated' => 'Tags updated',
+        'image_saved' => 'Image saved',
+        'uploading_chunks' => 'Uploading :done of :total parts…',
         'transcoding' => 'Still processing on the platform — playback becomes available when it finishes.',
         'transcode_failed' => 'The platform could not process this video.',
         'uploaded' => ':count file uploaded|:count files uploaded',

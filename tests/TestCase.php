@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Batustun\FilamentMediaLibrary\Tests;
 
 use Batustun\FilamentMediaLibrary\FilamentMediaLibraryServiceProvider;
+use Batustun\FilamentMediaLibrary\Tests\Fixtures\TestPanelProvider;
 use BladeUI\Heroicons\BladeHeroiconsServiceProvider;
 use BladeUI\Icons\BladeIconsServiceProvider;
 use Filament\Actions\ActionsServiceProvider;
@@ -17,6 +18,7 @@ use Filament\Support\SupportServiceProvider;
 use Filament\Tables\TablesServiceProvider;
 use Filament\Widgets\WidgetsServiceProvider;
 use Illuminate\Foundation\Application;
+use Illuminate\Support\ViewErrorBag;
 use Livewire\LivewireServiceProvider;
 use Orchestra\Testbench\TestCase as Orchestra;
 
@@ -25,6 +27,13 @@ abstract class TestCase extends Orchestra
     protected function setUp(): void
     {
         parent::setUp();
+
+        // Livewire's validation support reads the shared `errors` bag, which a
+        // real application gets from ShareErrorsFromSession. Testbench does not
+        // run that middleware for Livewire::test(), so start a session and
+        // share the bag ourselves — otherwise rendering any component fails.
+        $this->startSession();
+        view()->share('errors', new ViewErrorBag);
 
         $this->artisan('migrate')->run();
     }
@@ -46,6 +55,7 @@ abstract class TestCase extends Orchestra
             TablesServiceProvider::class,
             WidgetsServiceProvider::class,
             FilamentMediaLibraryServiceProvider::class,
+            TestPanelProvider::class,
         ]));
     }
 
@@ -79,6 +89,8 @@ abstract class TestCase extends Orchestra
             'url' => 'http://storage.example.test',
         ]);
 
+        $app['config']->set('session.driver', 'array');
+        $app['config']->set('app.key', 'base64:2fl+Ktvkfl+Fuz4Qp/A75G2RTiWVA/ZoKZvp6fiiM10=');
         $app['config']->set('filament-media-library.default_disk', 'public');
         $app['config']->set('filament-media-library.permissions.enabled', false);
     }

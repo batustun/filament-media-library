@@ -23,6 +23,14 @@ return [
     ],
 
     'actions' => [
+        'duplicate' => 'تكرار',
+        'toggle_extensions' => 'إظهار امتدادات الملفات',
+        'edit_image' => 'تحرير الصورة',
+        'crop' => 'اقتصاص',
+        'rotate' => 'تدوير',
+        'flip_h' => 'قلب أفقي',
+        'flip_v' => 'قلب رأسي',
+        'reset' => 'إعادة تعيين',
         'select' => 'اختيار',
         'select_count' => 'اختيار (:count)',
         'select_prompt' => 'اختر ملفًا',
@@ -58,6 +66,8 @@ return [
     ],
 
     'fields' => [
+        'tags' => 'الوسوم',
+        'tags_hint' => 'مفصولة بفواصل',
         'uploaded_by' => 'رفعه',
         'status' => 'الحالة',
         'duration' => 'المدة',
@@ -85,6 +95,10 @@ return [
     ],
 
     'filters' => [
+        'tag' => 'وسم',
+        'all_tags' => 'كل الوسوم',
+        'size_min' => 'أدنى ميغابايت',
+        'size_max' => 'أقصى ميغابايت',
         'date_from' => 'من',
         'date_to' => 'إلى',
         'clear' => 'مسح عوامل التصفية',
@@ -100,6 +114,10 @@ return [
     ],
 
     'messages' => [
+        'duplicated' => 'تم التكرار',
+        'tags_updated' => 'تم تحديث الوسوم',
+        'image_saved' => 'تم حفظ الصورة',
+        'uploading_chunks' => 'جارٍ رفع :done من :total أجزاء…',
         'transcoding' => 'لا تزال المعالجة جارية على المنصة — سيتاح التشغيل بعد انتهائها.',
         'transcode_failed' => 'تعذّر على المنصة معالجة هذا الفيديو.',
         'uploaded' => '{1} تم رفع ملف واحد|{2} تم رفع ملفين|[3,10] تم رفع :count ملفات|[11,*] تم رفع :count ملفًا',

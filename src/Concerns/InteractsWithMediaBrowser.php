@@ -4,15 +4,21 @@ declare(strict_types=1);
 
 namespace Batustun\FilamentMediaLibrary\Concerns;
 
+use Batustun\FilamentMediaLibrary\Filters\MediaFilter;
+use Batustun\FilamentMediaLibrary\Filters\MediaSorter;
 use Batustun\FilamentMediaLibrary\Models\Media;
+use Batustun\FilamentMediaLibrary\Models\MediaTag;
 use Batustun\FilamentMediaLibrary\Providers\Contracts\MediaProvider;
 use Batustun\FilamentMediaLibrary\Providers\MediaProviderRegistry;
 use Batustun\FilamentMediaLibrary\Services\MediaService;
 use Batustun\FilamentMediaLibrary\Support\Authorize;
 use Batustun\FilamentMediaLibrary\Support\MediaLibraryConfig;
 use Carbon\CarbonInterface;
+use Filament\Actions\Action;
+use Filament\Actions\Contracts\HasActions;
 use Illuminate\Contracts\Cache\Repository as CacheRepository;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Cache;
@@ -53,7 +59,26 @@ trait InteractsWithMediaBrowser
     #[Url(as: 'to', except: '')]
     public string $dateTo = '';
 
+    #[Url(as: 'tag', except: '')]
+    public string $tagFilter = '';
+
+    /** Minimum and maximum size in megabytes. */
+    #[Url(as: 'min', except: '')]
+    public string $sizeMin = '';
+
+    #[Url(as: 'max', except: '')]
+    public string $sizeMax = '';
+
+    protected const VIEW_MODE_SESSION_KEY = 'filament-media-library.view-mode';
+
+    protected const EXTENSIONS_SESSION_KEY = 'filament-media-library.show-extensions';
+
     public string $viewMode = 'grid';
+
+    public bool $showExtensions = true;
+
+    /** @var array<string, mixed> Values for filters registered by the host application. */
+    public array $customFilters = [];
 
     public int $perPage = 48;
 
@@ -72,6 +97,21 @@ trait InteractsWithMediaBrowser
         if (! in_array($this->perPage, MediaLibraryConfig::pageSizes(), true)) {
             $this->perPage = MediaLibraryConfig::defaultPageSize();
         }
+
+        // Grid or list is a personal preference, not a property of the data,
+        // so it survives navigating away and coming back.
+        if (MediaLibraryConfig::remembersViewMode()) {
+            $remembered = session(self::VIEW_MODE_SESSION_KEY);
+
+            if (in_array($remembered, ['grid', 'list'], true)) {
+                $this->viewMode = $remembered;
+            }
+        }
+
+        $this->showExtensions = (bool) session(
+            self::EXTENSIONS_SESSION_KEY,
+            MediaLibraryConfig::showsExtensions(),
+        );
     }
 
     // -----------------------------------------------------------------
@@ -194,20 +234,39 @@ trait InteractsWithMediaBrowser
         $this->resetPage();
     }
 
+    public function updatedTagFilter(): void
+    {
+        $this->resetPage();
+    }
+
+    public function updatedSizeMin(): void
+    {
+        $this->resetPage();
+    }
+
+    public function updatedSizeMax(): void
+    {
+        $this->resetPage();
+    }
+
     public function hasFilters(): bool
     {
-        return $this->search !== ''
-            || $this->kindFilter !== ''
-            || $this->dateFrom !== ''
-            || $this->dateTo !== '';
+        foreach (['search', 'kindFilter', 'dateFrom', 'dateTo', 'tagFilter', 'sizeMin', 'sizeMax'] as $property) {
+            if ($this->{$property} !== '') {
+                return true;
+            }
+        }
+
+        return $this->customFilters !== [];
     }
 
     public function clearFilters(): void
     {
-        $this->search = '';
-        $this->kindFilter = '';
-        $this->dateFrom = '';
-        $this->dateTo = '';
+        foreach (['search', 'kindFilter', 'dateFrom', 'dateTo', 'tagFilter', 'sizeMin', 'sizeMax'] as $property) {
+            $this->{$property} = '';
+        }
+
+        $this->customFilters = [];
         $this->resetPage();
     }
 
@@ -266,7 +325,7 @@ trait InteractsWithMediaBrowser
 
     protected function forgetFolderCaches(): void
     {
-        foreach (['folders', 'root-folders', 'usage'] as $key) {
+        foreach (['folders', 'root-folders', 'usage', 'tags'] as $key) {
             $this->cacheRepository()->forget($this->cacheKey($key));
         }
     }
@@ -387,6 +446,17 @@ trait InteractsWithMediaBrowser
     public function setView(string $mode): void
     {
         $this->viewMode = in_array($mode, ['grid', 'list'], true) ? $mode : 'grid';
+
+        if (MediaLibraryConfig::remembersViewMode()) {
+            session()->put(self::VIEW_MODE_SESSION_KEY, $this->viewMode);
+        }
+    }
+
+    public function toggleExtensions(): void
+    {
+        $this->showExtensions = ! $this->showExtensions;
+
+        session()->put(self::EXTENSIONS_SESSION_KEY, $this->showExtensions);
     }
 
     public function toggleSelect(string $id): void
@@ -466,13 +536,33 @@ trait InteractsWithMediaBrowser
             $query->where('created_at', '<=', $to->endOfDay());
         }
 
-        $query = match ($this->sort) {
-            'oldest' => $query->orderBy('created_at'),
-            'name' => $query->orderBy('name'),
-            'size_desc' => $query->orderByDesc('size'),
-            'size_asc' => $query->orderBy('size'),
-            default => $query->orderByDesc('created_at'),
-        };
+        if ($this->tagFilter !== '') {
+            $query->taggedWith($this->tagFilter);
+        }
+
+        if (is_numeric($this->sizeMin)) {
+            $query->where('size', '>=', (int) ((float) $this->sizeMin * 1024 * 1024));
+        }
+
+        if (is_numeric($this->sizeMax)) {
+            $query->where('size', '<=', (int) ((float) $this->sizeMax * 1024 * 1024));
+        }
+
+        $this->applyCustomFilters($query);
+
+        $customSorter = $this->customSorter($this->sort);
+
+        if ($customSorter !== null) {
+            $customSorter->apply($query);
+        } else {
+            $query = match ($this->sort) {
+                'oldest' => $query->orderBy('created_at'),
+                'name' => $query->orderBy('name'),
+                'size_desc' => $query->orderByDesc('size'),
+                'size_asc' => $query->orderBy('size'),
+                default => $query->orderByDesc('created_at'),
+            };
+        }
 
         // Deterministic tiebreaker so pagination cannot repeat or skip rows
         // when many records share a timestamp.
@@ -483,6 +573,83 @@ trait InteractsWithMediaBrowser
      * Cached alongside the folder tree: a SUM over the whole table on every
      * render is a full scan of a library that only changes on upload/delete.
      */
+    /** @return array<int, MediaFilter> */
+    public function availableFilters(): array
+    {
+        return MediaLibraryConfig::customFilters();
+    }
+
+    /** @return array<int, MediaSorter> */
+    public function availableSorters(): array
+    {
+        return MediaLibraryConfig::customSorters();
+    }
+
+    /**
+     * Actions the host application registered for the current selection.
+     *
+     * Cloned and cached per component: an Action carries a reference to the
+     * Livewire component it is mounted on, so handing the very same instance to
+     * both the page and the picker would make one of them drive the other.
+     *
+     * @return array<int, Action>
+     */
+    public function customBulkActions(): array
+    {
+        return $this->cacheCustomActions(MediaLibraryConfig::bulkActions());
+    }
+
+    /** @return array<int, Action> */
+    public function customItemActions(): array
+    {
+        return $this->cacheCustomActions(MediaLibraryConfig::itemActions());
+    }
+
+    /**
+     * @param  array<int, Action>  $actions
+     * @return array<int, Action>
+     */
+    protected function cacheCustomActions(array $actions): array
+    {
+        if (! $this instanceof HasActions) {
+            return [];
+        }
+
+        return array_map(fn (Action $action): Action => $this->cacheAction(clone $action), $actions);
+    }
+
+    protected function customSorter(string $key): ?MediaSorter
+    {
+        foreach ($this->availableSorters() as $sorter) {
+            if ($sorter->getKey() === $key) {
+                return $sorter;
+            }
+        }
+
+        return null;
+    }
+
+    protected function applyCustomFilters(Builder $query): void
+    {
+        foreach ($this->availableFilters() as $filter) {
+            $filter->apply($query, $this->customFilters[$filter->getKey()] ?? null);
+        }
+    }
+
+    /** @return array<int, string> Tag slugs present on this source, for the filter. */
+    public function availableTags(): array
+    {
+        if (! MediaLibraryConfig::tagsEnabled()) {
+            return [];
+        }
+
+        return $this->remember('tags', fn (): array => MediaTag::query()
+            ->whereHas('media', fn (Builder $nested) => $nested->where('disk', $this->disk))
+            ->orderBy('name')
+            ->pluck('name', 'slug')
+            ->all());
+    }
+
     protected function parseDate(string $value): ?CarbonInterface
     {
         $value = trim($value);
@@ -670,6 +837,40 @@ trait InteractsWithMediaBrowser
         return $renamed;
     }
 
+    public function performDuplicate(MediaService $service, string $id): ?Media
+    {
+        $this->authorizeMediaAction('upload');
+
+        $media = Media::query()->onDisk($this->disk)->whereKey($id)->first();
+
+        if (! $media) {
+            return null;
+        }
+
+        $copy = $service->duplicate($media);
+
+        $this->forgetFolderCaches();
+
+        return $copy;
+    }
+
+    /** @param array<int, string> $names */
+    public function performSyncTags(string $id, array $names): ?Media
+    {
+        $this->authorizeMediaAction('manage');
+
+        $media = Media::query()->onDisk($this->disk)->whereKey($id)->first();
+
+        if (! $media) {
+            return null;
+        }
+
+        $media->syncTagNames($names);
+        $this->forgetFolderCaches();
+
+        return $media;
+    }
+
     /** Swap the bytes behind an item while keeping its id, path and URL. */
     public function performReplace(MediaService $service, string $id, mixed $upload): ?Media
     {
@@ -700,7 +901,17 @@ trait InteractsWithMediaBrowser
         }
 
         $media->fill(array_intersect_key($payload, array_flip(['title', 'alt', 'description'])));
+
+        if (isset($payload['custom']) && is_array($payload['custom'])) {
+            $media->setCustomMeta($payload['custom']);
+        }
+
         $media->save();
+
+        // Anything the host application stores elsewhere gets its turn here.
+        if ($save = MediaLibraryConfig::plugin()?->getSaveFileInfoCallback()) {
+            $save($media, $payload);
+        }
 
         return $media;
     }

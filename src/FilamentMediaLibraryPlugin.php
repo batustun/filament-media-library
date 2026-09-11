@@ -5,6 +5,11 @@ declare(strict_types=1);
 namespace Batustun\FilamentMediaLibrary;
 
 use Batustun\FilamentMediaLibrary\Filament\Pages\MediaLibrary;
+use Batustun\FilamentMediaLibrary\Filters\MediaFilter;
+use Batustun\FilamentMediaLibrary\Filters\MediaSorter;
+use Batustun\FilamentMediaLibrary\Models\Media;
+use Closure;
+use Filament\Actions\Action;
 use Filament\Contracts\Plugin;
 use Filament\Panel;
 
@@ -52,6 +57,28 @@ class FilamentMediaLibraryPlugin implements Plugin
 
     protected bool $registersPage = true;
 
+    /** @var class-string<MediaLibrary> */
+    protected string $page = MediaLibrary::class;
+
+    /** @var array<int, MediaFilter>|null */
+    protected ?array $filters = null;
+
+    /** @var array<int, MediaSorter>|null */
+    protected ?array $sorters = null;
+
+    /** @var array<int, Action>|null */
+    protected ?array $itemActions = null;
+
+    /** @var array<int, Action>|null */
+    protected ?array $bulkActions = null;
+
+    /** @var array<int, mixed>|null */
+    protected ?array $fileInfoComponents = null;
+
+    protected ?Closure $hydrateFileInfo = null;
+
+    protected ?Closure $saveFileInfo = null;
+
     public static function make(): static
     {
         return app(static::class);
@@ -80,7 +107,7 @@ class FilamentMediaLibraryPlugin implements Plugin
         }
 
         $panel->pages([
-            MediaLibrary::class,
+            $this->page,
         ]);
     }
 
@@ -255,6 +282,149 @@ class FilamentMediaLibraryPlugin implements Plugin
     // ---------------------------------------------------------------------
     // Authorisation
     // ---------------------------------------------------------------------
+
+    // ---------------------------------------------------------------------
+    // Extension points
+    // ---------------------------------------------------------------------
+
+    /**
+     * Swap in your own subclass of the library page, to add header widgets or
+     * override behaviour.
+     *
+     * @param  class-string<MediaLibrary>  $page
+     */
+    public function mediaLibraryPage(string $page): static
+    {
+        $this->page = $page;
+
+        return $this;
+    }
+
+    /** @return class-string<MediaLibrary> */
+    public function getMediaLibraryPage(): string
+    {
+        return $this->page;
+    }
+
+    /**
+     * Filters added to the toolbar, on top of the built-in ones.
+     *
+     * @param  array<int, mixed>  $filters  MediaFilter instances; anything else is ignored
+     */
+    public function filters(array $filters): static
+    {
+        $this->filters = array_values(array_filter($filters, fn (mixed $f): bool => $f instanceof MediaFilter));
+
+        return $this;
+    }
+
+    /** @return array<int, MediaFilter>|null */
+    public function getFilters(): ?array
+    {
+        return $this->filters;
+    }
+
+    /**
+     * Orderings added to the sort menu.
+     *
+     * @param  array<int, mixed>  $sorters  MediaSorter instances; anything else is ignored
+     */
+    public function sorters(array $sorters): static
+    {
+        $this->sorters = array_values(array_filter($sorters, fn (mixed $s): bool => $s instanceof MediaSorter));
+
+        return $this;
+    }
+
+    /** @return array<int, MediaSorter>|null */
+    public function getSorters(): ?array
+    {
+        return $this->sorters;
+    }
+
+    /**
+     * Filament actions shown on a single item in the detail panel.
+     *
+     * @param  array<int, mixed>  $actions  Action instances; anything else is ignored
+     */
+    public function itemActions(array $actions): static
+    {
+        $this->itemActions = array_values(array_filter($actions, fn (mixed $a): bool => $a instanceof Action));
+
+        return $this;
+    }
+
+    /** @return array<int, Action>|null */
+    public function getItemActions(): ?array
+    {
+        return $this->itemActions;
+    }
+
+    /**
+     * Filament actions shown when items are selected.
+     *
+     * @param  array<int, mixed>  $actions  Action instances; anything else is ignored
+     */
+    public function bulkActions(array $actions): static
+    {
+        $this->bulkActions = array_values(array_filter($actions, fn (mixed $a): bool => $a instanceof Action));
+
+        return $this;
+    }
+
+    /** @return array<int, Action>|null */
+    public function getBulkActions(): ?array
+    {
+        return $this->bulkActions;
+    }
+
+    /**
+     * Extra form components for the file-info edit form, on top of the
+     * built-in title/alt/description and any configured metadata fields.
+     *
+     * Pair with hydrateFileInfoUsing() and saveFileInfoUsing() when the values
+     * do not live in the item's own custom metadata.
+     *
+     * @param  array<int, mixed>  $components
+     */
+    public function fileInfoComponents(array $components): static
+    {
+        $this->fileInfoComponents = array_values($components);
+
+        return $this;
+    }
+
+    /** @return array<int, mixed>|null */
+    public function getFileInfoComponents(): ?array
+    {
+        return $this->fileInfoComponents;
+    }
+
+    /** @param Closure(Media): array<string, mixed> $callback */
+    public function hydrateFileInfoUsing(Closure $callback): static
+    {
+        $this->hydrateFileInfo = $callback;
+
+        return $this;
+    }
+
+    public function getHydrateFileInfoCallback(): ?Closure
+    {
+        return $this->hydrateFileInfo;
+    }
+
+    /** @param Closure(Media, array<string, mixed>): void $callback */
+    public function saveFileInfoUsing(Closure $callback): static
+    {
+        $this->saveFileInfo = $callback;
+
+        return $this;
+    }
+
+    public function getSaveFileInfoCallback(): ?Closure
+    {
+        return $this->saveFileInfo;
+    }
 
     public function permissions(bool $condition = true): static
     {

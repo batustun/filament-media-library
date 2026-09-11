@@ -174,3 +174,242 @@ window.fmlBrowser = function ({ mode = 'page' } = {}) {
         copied: false,
     }
 }
+
+/**
+ * Chunked uploader.
+ *
+ * A single POST is capped by PHP's upload_max_filesize and post_max_size, which
+ * the application cannot raise at runtime. Files above the configured threshold
+ * are sliced here and reassembled server-side, so the cap stops mattering.
+ */
+window.fmlChunkedUpload = function ({ endpoint, csrf, chunkSize, threshold, disk, directory }) {
+    return {
+        busy: false,
+        done: 0,
+        total: 0,
+        error: null,
+
+        shouldChunk(file) {
+            return Boolean(endpoint) && file.size > threshold
+        },
+
+        /** Uploads one file; resolves with the created media payload. */
+        async upload(file) {
+            const uuid = crypto.randomUUID
+                ? crypto.randomUUID()
+                : 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => {
+                    const r = (Math.random() * 16) | 0
+                    return (c === 'x' ? r : (r & 0x3) | 0x8).toString(16)
+                })
+
+            this.total = Math.ceil(file.size / chunkSize)
+            this.done = 0
+            this.busy = true
+            this.error = null
+
+            try {
+                for (let index = 0; index < this.total; index++) {
+                    const start = index * chunkSize
+                    const slice = file.slice(start, Math.min(start + chunkSize, file.size))
+
+                    const body = new FormData()
+                    body.append('uuid', uuid)
+                    body.append('index', index)
+                    body.append('total', this.total)
+                    body.append('name', file.name)
+                    body.append('chunk', slice, 'chunk')
+                    if (disk) body.append('disk', disk)
+                    if (directory) body.append('directory', directory)
+
+                    const response = await fetch(endpoint, {
+                        method: 'POST',
+                        headers: { 'X-CSRF-TOKEN': csrf, Accept: 'application/json' },
+                        body,
+                    })
+
+                    if (! response.ok) {
+                        const payload = await response.json().catch(() => ({}))
+                        throw new Error(payload.message || `Upload failed (${response.status})`)
+                    }
+
+                    this.done = index + 1
+
+                    // The final part responds with the created record.
+                    if (this.done === this.total) {
+                        return (await response.json()).data
+                    }
+                }
+            } catch (error) {
+                this.error = error.message
+                throw error
+            } finally {
+                this.busy = false
+            }
+        },
+    }
+}
+
+/**
+ * Canvas image editor: crop, rotate, flip.
+ *
+ * Written against the 2D canvas rather than an image library, so the package
+ * keeps its no-build, no-dependency promise. The canvas re-encodes the whole
+ * image, which is why saving replaces the original in place.
+ */
+window.fmlImageEditor = function ({ src, endpoint, csrf, mime }) {
+    return {
+        open: false,
+        saving: false,
+        rotation: 0,
+        flipX: false,
+        flipY: false,
+        crop: null,          // { x, y, w, h } in displayed pixels
+        dragging: null,
+        image: null,
+
+        async start() {
+            this.open = true
+            this.reset()
+
+            await this.$nextTick()
+
+            this.image = new Image()
+            this.image.crossOrigin = 'anonymous'
+            this.image.onload = () => this.draw()
+            // Cache-bust so a previous edit is never what you edit next.
+            this.image.src = src + (src.includes('?') ? '&' : '?') + 'v=' + Date.now()
+        },
+
+        reset() {
+            this.rotation = 0
+            this.flipX = false
+            this.flipY = false
+            this.crop = null
+            this.draw()
+        },
+
+        rotate() {
+            this.rotation = (this.rotation + 90) % 360
+            this.crop = null
+            this.draw()
+        },
+
+        draw() {
+            const canvas = this.$refs.canvas
+            if (! canvas || ! this.image) return
+
+            const swap = this.rotation % 180 !== 0
+            const w = swap ? this.image.height : this.image.width
+            const h = swap ? this.image.width : this.image.height
+
+            canvas.width = w
+            canvas.height = h
+
+            const context = canvas.getContext('2d')
+            context.clearRect(0, 0, w, h)
+            context.save()
+            context.translate(w / 2, h / 2)
+            context.rotate((this.rotation * Math.PI) / 180)
+            context.scale(this.flipX ? -1 : 1, this.flipY ? -1 : 1)
+            context.drawImage(this.image, -this.image.width / 2, -this.image.height / 2)
+            context.restore()
+        },
+
+        // ------------------------------------------------------- crop box
+
+        startCrop(event) {
+            const rect = this.$refs.canvas.getBoundingClientRect()
+            this.dragging = { x: event.clientX - rect.left, y: event.clientY - rect.top }
+            this.crop = { x: this.dragging.x, y: this.dragging.y, w: 0, h: 0 }
+        },
+
+        moveCrop(event) {
+            if (! this.dragging) return
+
+            const rect = this.$refs.canvas.getBoundingClientRect()
+            const x = event.clientX - rect.left
+            const y = event.clientY - rect.top
+
+            this.crop = {
+                x: Math.min(this.dragging.x, x),
+                y: Math.min(this.dragging.y, y),
+                w: Math.abs(x - this.dragging.x),
+                h: Math.abs(y - this.dragging.y),
+            }
+        },
+
+        endCrop() {
+            this.dragging = null
+
+            // A click without a drag is not a crop.
+            if (this.crop && (this.crop.w < 8 || this.crop.h < 8)) {
+                this.crop = null
+            }
+        },
+
+        cropStyle() {
+            if (! this.crop) return 'display:none'
+
+            return `left:${this.crop.x}px;top:${this.crop.y}px;width:${this.crop.w}px;height:${this.crop.h}px`
+        },
+
+        // ----------------------------------------------------------- save
+
+        async save() {
+            const canvas = this.$refs.canvas
+            if (! canvas) return
+
+            this.saving = true
+
+            try {
+                const output = this.crop ? this.cropped(canvas) : canvas
+                const blob = await new Promise((resolve) => output.toBlob(resolve, mime || 'image/jpeg', 0.92))
+
+                // Give the blob a real extension: some proxies and servers
+                // sniff the part filename rather than its Content-Type.
+                const extension = (blob.type.split('/')[1] || 'jpg').replace('jpeg', 'jpg')
+
+                const body = new FormData()
+                body.append('image', blob, `edited.${extension}`)
+
+                const response = await fetch(endpoint, {
+                    method: 'POST',
+                    headers: { 'X-CSRF-TOKEN': csrf, Accept: 'application/json' },
+                    body,
+                })
+
+                if (! response.ok) throw new Error(`Save failed (${response.status})`)
+
+                this.open = false
+                this.$wire.$refresh()
+            } finally {
+                this.saving = false
+            }
+        },
+
+        /** The crop box is in displayed pixels; the canvas may be larger. */
+        cropped(canvas) {
+            const rect = canvas.getBoundingClientRect()
+            const scaleX = canvas.width / rect.width
+            const scaleY = canvas.height / rect.height
+
+            const target = document.createElement('canvas')
+            target.width = Math.max(1, Math.round(this.crop.w * scaleX))
+            target.height = Math.max(1, Math.round(this.crop.h * scaleY))
+
+            target.getContext('2d').drawImage(
+                canvas,
+                this.crop.x * scaleX,
+                this.crop.y * scaleY,
+                target.width,
+                target.height,
+                0,
+                0,
+                target.width,
+                target.height,
+            )
+
+            return target
+        },
+    }
+}

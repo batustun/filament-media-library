@@ -54,6 +54,8 @@
 
     <div class="fml-card__meta">
         <span class="fml-card__name" title="{{ $item->name }}">{{ $item->name }}</span>
-        <span class="fml-card__sub">{{ $item->human_size }}</span>
+        <span class="fml-card__sub">
+            {{ $item->human_size }}@if ($showExtensions ?? true) @if ($extension) · {{ $extension }} @endif @endif
+        </span>
     </div>
 </div>

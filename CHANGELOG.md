@@ -7,6 +7,50 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.1.0] - 2026-09-12
+
+### Added
+- **Tags** — their own table and pivot, slug-matched so "Product Shots" and
+  "product shots" are one tag, with a tag filter in the toolbar.
+- **Custom metadata fields** — declare extra fields in config and they appear in
+  the detail panel, stored under `meta.custom`. Undeclared keys are refused.
+- **Extensibility** — `->filters()`, `->sorters()`, `->itemActions()`,
+  `->bulkActions()`, `->mediaLibraryPage()`, `->fileInfoComponents()` with
+  hydrate and save callbacks.
+- **Chunked uploads** — files above a threshold are sliced in the browser and
+  reassembled server-side, so `post_max_size` stops being the ceiling. Includes
+  `media-library:clean-chunks` for abandoned uploads.
+- **In-browser image editing** — crop, rotate and flip on a 2D canvas, with no
+  image library and no build step. Saving replaces the original in place, so the
+  URL is unchanged and conversions are regenerated.
+- **Image optimiser integrations** — Bunny Optimizer, Cloudflare Images and
+  Glide. Because URLs resolve at read time, enabling one rewrites every URL the
+  library emits with no re-upload.
+- **Multi-tenancy** — items are stamped with the current Filament tenant and a
+  global scope keeps every query inside it, including direct model access.
+- **Duplicate** an item into its own file and record.
+- **Size filter**, and the grid/list choice and extension display are remembered
+  per user.
+- `media-library:import-spatie` — bring media managed by
+  spatie/laravel-medialibrary into the library, idempotently and without
+  touching its records.
+- `MediaColumn` table column and `MediaEntry` infolist entry.
+
+### Changed
+- The `Media` model is composed from focused concerns (`BelongsToTenant`,
+  `HasConversions`, `HasCustomMetadata`, `HasMediaTags`, `TracksUsage`) rather
+  than one 600-line class.
+
+### Fixed
+- Attaching the same item to two collections on one model collapsed into a
+  single pivot row, because the sync was not scoped to the collection.
+- A metadata field declared without a `type` raised an undefined-key error.
+- `thumbnailUrl()` ignored a configured optimiser.
+
+### Notes
+- A TipTap integration is not included: `awcodes/filament-tiptap-editor` does not
+  support Filament v5, so there is no editor to integrate with yet.
+
 ## [1.0.0] - 2026-09-12
 
 First public release.
@@ -79,5 +123,6 @@ First public release.
 - English, Turkish, German, French, Spanish, Italian, Dutch, Brazilian
   Portuguese, Russian and Arabic. RTL works without extra rules.
 
-[Unreleased]: https://github.com/batustun/filament-media-library/compare/v1.0.0...HEAD
+[Unreleased]: https://github.com/batustun/filament-media-library/compare/v1.1.0...HEAD
+[1.1.0]: https://github.com/batustun/filament-media-library/compare/v1.0.0...v1.1.0
 [1.0.0]: https://github.com/batustun/filament-media-library/releases/tag/v1.0.0

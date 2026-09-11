@@ -22,6 +22,9 @@ upload, organise, search and reuse every asset in your panel.
 - **Knows where things are used,** so deleting an in-use asset warns first.
 - **Filament's own design language** — its components, its colour variables,
   its dark mode. No Tailwind build step, and RTL works out of the box.
+- **Tags, custom metadata fields, in-browser image editing and chunked uploads.**
+- **Extensible**: add your own filters, sorters, item and bulk actions, or swap
+  the page class entirely.
 - **10 languages** included.
 
 ---
@@ -221,6 +224,145 @@ simply get no variants and serve the original.
 
 ---
 
+## Tags and custom metadata
+
+Tags live in their own table, so filtering and counting by them are real
+queries. Matching is on a slug, so "Product Shots", "product shots" and
+"product-shots" are one tag.
+
+```php
+$media->syncTagNames(['Campaign', 'Hero']);
+$media->tagNames();
+Media::query()->taggedWith('campaign')->get();
+```
+
+Declare extra fields and they appear in the detail panel, stored under
+`meta.custom`:
+
+```php
+'metadata_fields' => [
+    ['key' => 'photographer', 'label' => 'Photographer', 'type' => 'text'],
+    ['key' => 'licence', 'type' => 'select', 'options' => ['rf' => 'Royalty free']],
+    ['key' => 'featured', 'type' => 'boolean'],
+],
+```
+
+Types: `text`, `textarea`, `number`, `url`, `date`, `boolean`, `select`.
+Anything not declared here is refused, so a crafted request cannot write
+arbitrary keys.
+
+---
+
+## Extending
+
+Everything below is per panel, and none of it writes to global config.
+
+```php
+use Batustun\FilamentMediaLibrary\Filters\MediaFilter;
+use Batustun\FilamentMediaLibrary\Filters\MediaSorter;
+
+FilamentMediaLibraryPlugin::make()
+    ->filters([
+        MediaFilter::make('licence')
+            ->label('Licence')
+            ->options(['rf' => 'Royalty free', 'rm' => 'Rights managed'])
+            ->using(fn (Builder $query, string $value) => $query->where('meta->custom->licence', $value)),
+
+        MediaFilter::make('featured')
+            ->label('Featured only')
+            ->boolean()
+            ->using(fn (Builder $query) => $query->where('meta->custom->featured', true)),
+    ])
+    ->sorters([
+        MediaSorter::make('most_used')
+            ->label('Most used')
+            ->using(fn (Builder $query) => $query->withUsageCount()->orderByDesc('usage_count')),
+    ])
+    ->itemActions([Action::make('sendToReview')->action(fn (array $arguments) => /* ... */)])
+    ->bulkActions([Action::make('exportSelected')->action(fn () => /* ... */)])
+    ->mediaLibraryPage(MyMediaLibraryPage::class);
+```
+
+Extra fields in the file-info form, when the values live somewhere other than
+the item's own metadata:
+
+```php
+FilamentMediaLibraryPlugin::make()
+    ->fileInfoComponents([TextInput::make('sku')])
+    ->hydrateFileInfoUsing(fn (Media $media) => ['sku' => $media->customMetaValue('sku')])
+    ->saveFileInfoUsing(fn (Media $media, array $data) => /* persist $data['sku'] */);
+```
+
+---
+
+## Large uploads
+
+A single POST is capped by PHP's `upload_max_filesize` and `post_max_size`,
+which no application code can raise at runtime. Files above the threshold are
+sliced in the browser and reassembled server-side:
+
+```php
+'chunked_uploads' => [
+    'enabled' => true,
+    'chunk_size_mb' => 8,
+    'threshold_mb' => 16,
+],
+```
+
+Schedule the cleanup so abandoned uploads do not accumulate:
+
+```php
+Schedule::command('media-library:clean-chunks')->daily();
+```
+
+---
+
+## Image editing
+
+Crop, rotate and flip in the browser. Saving **replaces the original in place**,
+so the URL does not change and every page already showing it picks up the edit;
+conversions are regenerated from the new bytes. There is no version history.
+
+Built on the 2D canvas — no image library, no build step. The button only
+appears for formats a canvas can re-encode (JPEG, PNG, WebP); SVG, HEIC and
+TIFF are excluded rather than silently mangled.
+
+---
+
+## Multi-tenancy
+
+```dotenv
+MEDIA_LIBRARY_TENANCY=true
+```
+
+Items are stamped with the current Filament tenant on upload, and a **global
+scope** keeps every query inside it — including a direct `Media::find()` from
+your own code, because a library that is only scoped on one query path is not
+scoped at all.
+
+The `tenant_id` column exists either way, so turning this on later needs no
+migration in your application.
+
+---
+
+## Coming from spatie/laravel-medialibrary
+
+Import what Spatie already manages, without touching its records:
+
+```bash
+php artisan media-library:import-spatie --dry-run
+php artisan media-library:import-spatie --collection=cover
+```
+
+Safe to re-run: every imported row records the Spatie id it came from and is
+skipped next time. This is an import, not a live driver — from then on the rows
+belong to this library.
+
+> The package's own tables are prefixed (`media_library_items`), so it coexists
+> with Spatie's `media` table rather than colliding with it.
+
+---
+
 ## Security
 
 | | |
@@ -306,11 +448,15 @@ that is still in use.
 
 ## In the library
 
-- Grid and list views, folder tree, search, type filter, **date range filter**
+- Grid and list views, folder tree, search, and filters for type, **tag**,
+  **size** and **date range** — plus any you add yourself
+- The grid/list choice is **remembered** per user; file extensions toggle on and off
 - **Keyboard navigation** (arrows, Enter, Space) and **Shift+click** range select
 - **Drag files onto a folder** to move them; drag from the desktop to upload
 - **Rename or move a folder** — files move on the disk too
 - **Replace a file in place**, keeping its URL so every page updates at once
+- **Duplicate** an item into its own file and record
+- **Edit images in the browser** — crop, rotate, flip
 - **Duplicate detection**: a byte-identical upload reuses the existing record
   instead of writing a second copy
 - Bulk move and bulk delete, copy URL, download
@@ -326,6 +472,12 @@ php artisan media-library:sync --disk=s3 --directory=legacy
 # Check the library against its storage and repair drift
 php artisan media-library:doctor --disk=s3
 php artisan media-library:doctor --disk=s3 --prune --index
+
+# Import media managed by spatie/laravel-medialibrary
+php artisan media-library:import-spatie --dry-run
+
+# Remove abandoned chunked uploads (schedule this daily)
+php artisan media-library:clean-chunks
 ```
 
 `doctor` reports index rows whose file is missing, files on the disk that are

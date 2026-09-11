@@ -23,6 +23,14 @@ return [
     ],
 
     'actions' => [
+        'duplicate' => 'Duplizieren',
+        'toggle_extensions' => 'Dateiendungen anzeigen',
+        'edit_image' => 'Bild bearbeiten',
+        'crop' => 'Zuschneiden',
+        'rotate' => 'Drehen',
+        'flip_h' => 'Horizontal spiegeln',
+        'flip_v' => 'Vertikal spiegeln',
+        'reset' => 'Zurücksetzen',
         'select' => 'Auswählen',
         'select_count' => 'Auswählen (:count)',
         'select_prompt' => 'Datei auswählen',
@@ -58,6 +66,8 @@ return [
     ],
 
     'fields' => [
+        'tags' => 'Tags',
+        'tags_hint' => 'Mit Komma getrennt',
         'uploaded_by' => 'Hochgeladen von',
         'status' => 'Status',
         'duration' => 'Dauer',
@@ -85,6 +95,10 @@ return [
     ],
 
     'filters' => [
+        'tag' => 'Tag',
+        'all_tags' => 'Alle Tags',
+        'size_min' => 'Min. MB',
+        'size_max' => 'Max. MB',
         'date_from' => 'Von',
         'date_to' => 'Bis',
         'clear' => 'Filter zurücksetzen',
@@ -100,6 +114,10 @@ return [
     ],
 
     'messages' => [
+        'duplicated' => 'Dupliziert',
+        'tags_updated' => 'Tags aktualisiert',
+        'image_saved' => 'Bild gespeichert',
+        'uploading_chunks' => ':done von :total Teilen werden hochgeladen…',
         'transcoding' => 'Wird auf der Plattform noch verarbeitet – die Wiedergabe ist danach verfügbar.',
         'transcode_failed' => 'Die Plattform konnte dieses Video nicht verarbeiten.',
         'uploaded' => ':count Datei hochgeladen|:count Dateien hochgeladen',

@@ -23,6 +23,14 @@ return [
     ],
 
     'actions' => [
+        'duplicate' => 'Dupliquer',
+        'toggle_extensions' => 'Afficher les extensions',
+        'edit_image' => 'Modifier l’image',
+        'crop' => 'Recadrer',
+        'rotate' => 'Pivoter',
+        'flip_h' => 'Miroir horizontal',
+        'flip_v' => 'Miroir vertical',
+        'reset' => 'Réinitialiser',
         'select' => 'Sélectionner',
         'select_count' => 'Sélectionner (:count)',
         'select_prompt' => 'Sélectionnez un fichier',
@@ -58,6 +66,8 @@ return [
     ],
 
     'fields' => [
+        'tags' => 'Étiquettes',
+        'tags_hint' => 'Séparées par des virgules',
         'uploaded_by' => 'Téléversé par',
         'status' => 'Statut',
         'duration' => 'Durée',
@@ -85,6 +95,10 @@ return [
     ],
 
     'filters' => [
+        'tag' => 'Étiquette',
+        'all_tags' => 'Toutes les étiquettes',
+        'size_min' => 'Min Mo',
+        'size_max' => 'Max Mo',
         'date_from' => 'Du',
         'date_to' => 'Au',
         'clear' => 'Effacer les filtres',
@@ -100,6 +114,10 @@ return [
     ],
 
     'messages' => [
+        'duplicated' => 'Dupliqué',
+        'tags_updated' => 'Étiquettes mises à jour',
+        'image_saved' => 'Image enregistrée',
+        'uploading_chunks' => 'Téléversement de :done sur :total parties…',
         'transcoding' => 'Encore en traitement sur la plateforme — la lecture sera disponible ensuite.',
         'transcode_failed' => 'La plateforme n’a pas pu traiter cette vidéo.',
         'uploaded' => ':count fichier téléversé|:count fichiers téléversés',

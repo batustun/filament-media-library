@@ -129,6 +129,109 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Tags
+    |--------------------------------------------------------------------------
+    |
+    | Free-form labels an editor can attach to any item, and filter the library
+    | by. Stored in their own table so filtering and counting are real queries.
+    |
+    | When `sync_spatie_tags` is on and spatie/laravel-tags is installed, tag
+    | names are mirrored into Spatie's table so the rest of the application can
+    | keep using whatever it already does.
+    |
+    */
+    'tags' => [
+        'enabled' => true,
+        'sync_spatie_tags' => false,
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
+    | Custom Metadata Fields
+    |--------------------------------------------------------------------------
+    |
+    | Extra fields shown in the detail panel and stored under meta.custom.
+    | Supported types: text, textarea, number, url, date, boolean, select.
+    |
+    |   ['key' => 'photographer', 'label' => 'Photographer', 'type' => 'text'],
+    |   ['key' => 'licence', 'type' => 'select', 'options' => ['rf' => 'Royalty free']],
+    |
+    | `label` falls back to the translation
+    | filament-media-library::filament-media-library.custom.{key}, then to a
+    | humanised key.
+    |
+    */
+    'metadata_fields' => [],
+
+    /*
+    |--------------------------------------------------------------------------
+    | Image Optimizer
+    |--------------------------------------------------------------------------
+    |
+    | An on-the-fly resizing CDN. Because public URLs are resolved at read time,
+    | turning one on rewrites every URL the library emits — no re-upload and no
+    | regenerated files.
+    |
+    | Drivers: null (use the generated conversions), "bunny" (Bunny Optimizer),
+    | "cloudflare" (Cloudflare Images resizing) or "glide" (a league/glide route
+    | in your own app).
+    |
+    */
+    'optimizer' => [
+        'driver' => env('MEDIA_LIBRARY_OPTIMIZER'),
+        'quality' => 82,
+        'format' => null,          // e.g. "webp" to force a format
+        'glide_path' => '/img',    // only used by the glide driver
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
+    | Multi-tenancy
+    |--------------------------------------------------------------------------
+    |
+    | When enabled, items are stamped with the current Filament tenant on
+    | upload and every library query is scoped to it, so one tenant can never
+    | see or delete another's media.
+    |
+    | The column exists either way, so switching this on later needs no
+    | migration in your application.
+    |
+    */
+    'tenancy' => [
+        'enabled' => (bool) env('MEDIA_LIBRARY_TENANCY', false),
+        'column' => 'tenant_id',
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
+    | Chunked Uploads
+    |--------------------------------------------------------------------------
+    |
+    | Slices large files in the browser and reassembles them server-side, so an
+    | upload is no longer capped by PHP's post_max_size / upload_max_filesize.
+    | Set `threshold_mb` to the size above which chunking kicks in.
+    |
+    */
+    'chunked_uploads' => [
+        'enabled' => true,
+        'chunk_size_mb' => 8,
+        'threshold_mb' => 16,
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
+    | Interface
+    |--------------------------------------------------------------------------
+    */
+    'ui' => [
+        // Show the file extension on each card.
+        'show_extensions' => true,
+        // Remember each user's grid/list choice between visits.
+        'remember_view_mode' => true,
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
     | Media Providers
     |--------------------------------------------------------------------------
     |
@@ -296,6 +399,8 @@ return [
     'tables' => [
         'media' => 'media_library_items',
         'morph' => 'media_library_attachables',
+        'tags' => 'media_library_tags',
+        'taggables' => 'media_library_taggables',
     ],
 
     /*

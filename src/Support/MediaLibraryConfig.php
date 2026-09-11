@@ -5,7 +5,11 @@ declare(strict_types=1);
 namespace Batustun\FilamentMediaLibrary\Support;
 
 use Batustun\FilamentMediaLibrary\FilamentMediaLibraryPlugin;
+use Batustun\FilamentMediaLibrary\Filters\MediaFilter;
+use Batustun\FilamentMediaLibrary\Filters\MediaSorter;
+use Filament\Actions\Action;
 use Filament\Facades\Filament;
+use Spatie\Tags\Tag;
 use Throwable;
 
 /**
@@ -22,6 +26,9 @@ use Throwable;
  */
 final class MediaLibraryConfig
 {
+    /** Input types a declared metadata field may use. */
+    public const METADATA_FIELD_TYPES = ['text', 'textarea', 'number', 'url', 'date', 'boolean', 'select'];
+
     public static function plugin(): ?FilamentMediaLibraryPlugin
     {
         try {
@@ -152,6 +159,141 @@ final class MediaLibraryConfig
      *
      * @return array<string, array<string, mixed>>
      */
+    /** @return array<int, MediaFilter> */
+    public static function customFilters(): array
+    {
+        return self::plugin()?->getFilters() ?? [];
+    }
+
+    /** @return array<int, MediaSorter> */
+    public static function customSorters(): array
+    {
+        return self::plugin()?->getSorters() ?? [];
+    }
+
+    /** @return array<int, Action> */
+    public static function itemActions(): array
+    {
+        return self::plugin()?->getItemActions() ?? [];
+    }
+
+    /** @return array<int, Action> */
+    public static function bulkActions(): array
+    {
+        return self::plugin()?->getBulkActions() ?? [];
+    }
+
+    /** @return array<int, mixed> */
+    public static function fileInfoComponents(): array
+    {
+        return self::plugin()?->getFileInfoComponents() ?? [];
+    }
+
+    public static function tagsEnabled(): bool
+    {
+        return (bool) self::get('tags.enabled', true);
+    }
+
+    public static function syncsSpatieTags(): bool
+    {
+        return (bool) self::get('tags.sync_spatie_tags', false)
+            && class_exists(Tag::class);
+    }
+
+    /**
+     * Extra fields shown in the detail panel, normalised so a view can rely on
+     * every key being present.
+     *
+     * @return array<int, array{key: string, label: string, type: string, options: array<string, string>}>
+     */
+    public static function metadataFields(): array
+    {
+        $fields = [];
+
+        foreach ((array) self::get('metadata_fields', []) as $field) {
+            if (! is_array($field) || ! isset($field['key'])) {
+                continue;
+            }
+
+            $key = (string) $field['key'];
+
+            if ($key === '') {
+                continue;
+            }
+
+            $type = (string) ($field['type'] ?? 'text');
+
+            $fields[] = [
+                'key' => $key,
+                'label' => (string) ($field['label'] ?? self::metadataLabel($key)),
+                'type' => in_array($type, self::METADATA_FIELD_TYPES, true) ? $type : 'text',
+                'options' => array_map('strval', (array) ($field['options'] ?? [])),
+            ];
+        }
+
+        return $fields;
+    }
+
+    private static function metadataLabel(string $key): string
+    {
+        $translation = 'filament-media-library::filament-media-library.custom.'.$key;
+        $translated = __($translation);
+
+        return is_string($translated) && $translated !== $translation
+            ? $translated
+            : ucfirst(str_replace(['_', '-'], ' ', $key));
+    }
+
+    public static function optimizerDriver(): ?string
+    {
+        $driver = self::get('optimizer.driver');
+
+        return is_string($driver) && $driver !== '' ? strtolower($driver) : null;
+    }
+
+    /** @return array<string, mixed> */
+    public static function optimizer(): array
+    {
+        return (array) self::get('optimizer', []);
+    }
+
+    public static function tenancyEnabled(): bool
+    {
+        return (bool) self::get('tenancy.enabled', false);
+    }
+
+    public static function tenantColumn(): string
+    {
+        $column = (string) self::get('tenancy.column', 'tenant_id');
+
+        return $column !== '' ? $column : 'tenant_id';
+    }
+
+    public static function chunkedUploadsEnabled(): bool
+    {
+        return (bool) self::get('chunked_uploads.enabled', true);
+    }
+
+    public static function chunkSizeBytes(): int
+    {
+        return max(1, (int) self::get('chunked_uploads.chunk_size_mb', 8)) * 1024 * 1024;
+    }
+
+    public static function chunkThresholdBytes(): int
+    {
+        return max(1, (int) self::get('chunked_uploads.threshold_mb', 16)) * 1024 * 1024;
+    }
+
+    public static function showsExtensions(): bool
+    {
+        return (bool) self::get('ui.show_extensions', true);
+    }
+
+    public static function remembersViewMode(): bool
+    {
+        return (bool) self::get('ui.remember_view_mode', true);
+    }
+
     public static function providers(): array
     {
         $providers = [];
@@ -259,8 +401,11 @@ final class MediaLibraryConfig
     {
         $defaults = [
             'media' => 'media_library_items',
+            // Only referenced by the legacy cleanup migration.
             'folders' => 'media_library_folders',
             'morph' => 'media_library_attachables',
+            'tags' => 'media_library_tags',
+            'taggables' => 'media_library_taggables',
         ];
 
         return (string) self::get('tables.'.$key, $defaults[$key] ?? $key);

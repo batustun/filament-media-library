@@ -8,6 +8,10 @@ use Batustun\FilamentMediaLibrary\Concerns\InteractsWithMediaBrowser;
 use Batustun\FilamentMediaLibrary\Models\Media;
 use Batustun\FilamentMediaLibrary\Services\MediaService;
 use Batustun\FilamentMediaLibrary\Support\Authorize;
+use Filament\Actions\Concerns\InteractsWithActions;
+use Filament\Actions\Contracts\HasActions;
+use Filament\Schemas\Concerns\InteractsWithSchemas;
+use Filament\Schemas\Contracts\HasSchemas;
 use Illuminate\Contracts\View\View;
 use Illuminate\Support\Facades\View as ViewFactory;
 use Livewire\Component;
@@ -20,9 +24,11 @@ use Throwable;
  * Livewire action is a public HTTP endpoint, so "the parent page already
  * checked" is not a defence.
  */
-class MediaPicker extends Component
+class MediaPicker extends Component implements HasActions, HasSchemas
 {
+    use InteractsWithActions;
     use InteractsWithMediaBrowser;
+    use InteractsWithSchemas;
 
     public bool $multiple = false;
 
@@ -224,6 +230,22 @@ class MediaPicker extends Component
     public function moveItemTo(string $id, ?string $directory): void
     {
         $this->performMoveOne(app(MediaService::class), $id, $directory);
+    }
+
+    public function duplicateOne(string $id): void
+    {
+        $this->performDuplicate(app(MediaService::class), $id);
+    }
+
+    /** @param array<int, string> $names */
+    public function syncTags(string $id, array $names): void
+    {
+        $this->performSyncTags($id, $names);
+    }
+
+    public function updateMeta(string $id, array $payload): void
+    {
+        $this->performUpdateMeta($id, $payload);
     }
 
     public function renameFolder(string $from, string $to): void

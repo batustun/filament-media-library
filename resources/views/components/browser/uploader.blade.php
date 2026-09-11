@@ -1,10 +1,37 @@
 @php
+    use Batustun\FilamentMediaLibrary\Support\MediaLibraryConfig;
+
     $t = 'filament-media-library::filament-media-library';
     $target = $uploadAction ?? 'uploadFiles';
+    $chunked = MediaLibraryConfig::chunkedUploadsEnabled() && Route::has('filament-media-library.chunk');
 @endphp
 
 <div
     class="fml-dropzone"
+    @if ($chunked)
+        x-data="fmlChunkedUpload({
+            endpoint: @js(route('filament-media-library.chunk')),
+            csrf: @js(csrf_token()),
+            chunkSize: {{ MediaLibraryConfig::chunkSizeBytes() }},
+            threshold: {{ MediaLibraryConfig::chunkThresholdBytes() }},
+            disk: @js($disk),
+            directory: @js($directory),
+        })"
+        x-on:change.capture="
+            // Anything above the threshold cannot survive a single POST, so it
+            // is sliced here and never reaches Livewire's uploader.
+            const big = Array.from($event.target.files ?? []).filter((f) => shouldChunk(f))
+            if (big.length) {
+                $event.stopPropagation()
+                const input = $event.target
+                ;(async () => {
+                    for (const file of big) { await upload(file) }
+                    input.value = ''
+                    $wire.\$refresh()
+                })()
+            }
+        "
+    @endif
     x-bind:data-active="dragActive ? 'true' : 'false'"
     x-on:dragover.prevent="dragActive = true"
     x-on:dragleave.prevent="dragActive = false"
@@ -38,4 +65,14 @@
         <x-filament::loading-indicator class="fml-icon-sm" />
         {{ __($t.'.messages.preparing') }}
     </div>
+
+    @if ($chunked)
+        <div x-show="busy" x-cloak class="fml-dropzone__overlay">
+            <x-filament::loading-indicator class="fml-icon-sm" />
+            <span x-text="@js(__($t.'.messages.uploading_chunks', ['done' => ':done', 'total' => ':total']))
+                .replace(':done', done).replace(':total', total)"></span>
+        </div>
+
+        <p x-show="error" x-cloak x-text="error" class="fml-dropzone__hint fml-danger"></p>
+    @endif
 </div>

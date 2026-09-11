@@ -59,4 +59,7 @@
     </div>
 
     @include('filament-media-library::components.browser.dialogs', ['folders' => $folders])
+
+    {{-- Modals for any actions the host application registered. --}}
+    <x-filament-actions::modals />
 </div>

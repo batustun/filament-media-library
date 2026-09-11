@@ -422,6 +422,65 @@ class MediaService
     }
 
     /**
+     * Copy an item to a new file and a new record.
+     *
+     * The copy gets its own name and path, so editing or deleting it cannot
+     * touch the original — which is exactly what separates "duplicate" from
+     * "replace".
+     */
+    public function duplicate(Media $media): Media
+    {
+        if ($media->isProviderBacked()) {
+            throw new RuntimeException('Provider-backed items cannot be duplicated.');
+        }
+
+        $disk = Storage::disk($media->disk);
+        $extension = (string) pathinfo((string) $media->name, PATHINFO_EXTENSION);
+        $base = (string) pathinfo((string) $media->name, PATHINFO_FILENAME);
+
+        $filename = $this->buildFilename($base.'-copy', $extension);
+        $directory = (string) ($media->directory ?? '');
+        $path = ltrim(($directory === '' ? '' : $directory.'/').$filename, '/');
+
+        $stream = $disk->readStream($media->path);
+
+        if (! is_resource($stream)) {
+            throw new RuntimeException("Unable to read [{$media->path}] for duplication.");
+        }
+
+        try {
+            $options = [];
+
+            if ($visibility = MediaLibraryConfig::visibility()) {
+                $options['visibility'] = $visibility;
+            }
+
+            if ($disk->put($path, $stream, $options) === false) {
+                throw new RuntimeException("Failed to write the duplicate to [{$path}].");
+            }
+        } finally {
+            fclose($stream);
+        }
+
+        $copy = $media->replicate(['id', 'created_at', 'updated_at']);
+
+        $copy->forceFill([
+            'path' => $path,
+            'name' => $filename,
+            'url' => MediaLibraryConfig::persistUrl() ? $this->resolveUrl($media->disk, $path) : null,
+            // Conversions belong to the original file, not to this new one.
+            'meta' => array_diff_key((array) $media->meta, array_flip(['conversions'])),
+            'uploaded_by' => Auth::id() ?? $media->uploaded_by,
+        ])->save();
+
+        $copy->syncTagNames($media->tagNames());
+
+        $this->dispatchConversions($copy);
+
+        return $copy;
+    }
+
+    /**
      * Move items into a directory, on the disk and in the index.
      *
      * @param  iterable<Media>  $items

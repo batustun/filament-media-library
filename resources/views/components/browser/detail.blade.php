@@ -8,6 +8,9 @@
     $usage = $item->usageCount();
     $canManage = $this->canMedia('manage');
     $canDelete = $this->canMedia('delete');
+    $canUpload = $this->canMedia('upload');
+    $metadataFields = \Batustun\FilamentMediaLibrary\Support\MediaLibraryConfig::metadataFields();
+    $tagsEnabled = \Batustun\FilamentMediaLibrary\Support\MediaLibraryConfig::tagsEnabled();
 @endphp
 
 <div
@@ -17,6 +20,20 @@
         title: @js($item->title ?? ''),
         alt: @js($item->alt ?? ''),
         description: @js($item->description ?? ''),
+        tags: @js(implode(', ', $item->tagNames())),
+        custom: @js((object) $item->customMeta()),
+        save () {
+            this.$wire.updateMeta(@js($item->id), {
+                title: this.title,
+                alt: this.alt,
+                description: this.description,
+                custom: this.custom,
+            })
+
+            @if ($tagsEnabled)
+                this.$wire.syncTags(@js($item->id), this.tags.split(',').map((t) => t.trim()).filter(Boolean))
+            @endif
+        },
     }"
 >
     <x-filament::section compact>
@@ -85,6 +102,14 @@
                 </x-filament::badge>
             @else
                 <x-filament::badge color="gray">{{ __($t.'.messages.not_used') }}</x-filament::badge>
+            @endif
+
+            @if ($tagsEnabled && ($tagNames = $item->tagNames()))
+                <div class="fml-tags">
+                    @foreach ($tagNames as $tagName)
+                        <x-filament::badge color="gray" size="xs">{{ $tagName }}</x-filament::badge>
+                    @endforeach
+                </div>
             @endif
 
             <dl class="fml-facts">
@@ -184,11 +209,55 @@
                     </x-filament::input.wrapper>
                 </div>
 
-                <x-filament::button
-                    size="sm"
-                    icon="heroicon-m-check"
-                    x-on:click="$wire.updateMeta(@js($item->id), { title, alt, description })"
-                >
+                @if ($tagsEnabled)
+                    <div class="fml-field">
+                        <span class="fml-label">{{ __($t.'.fields.tags') }}</span>
+                        <x-filament::input.wrapper>
+                            <x-filament::input type="text" x-model="tags" :placeholder="__($t.'.fields.tags_hint')" />
+                        </x-filament::input.wrapper>
+                    </div>
+                @endif
+
+                @foreach ($metadataFields as $field)
+                    <div class="fml-field">
+                        <span class="fml-label">{{ $field['label'] }}</span>
+                        @switch($field['type'])
+                            @case('textarea')
+                                <x-filament::input.wrapper>
+                                    <textarea rows="2" class="fi-input" x-model="custom['{{ $field['key'] }}']"></textarea>
+                                </x-filament::input.wrapper>
+                                @break
+
+                            @case('select')
+                                <x-filament::input.wrapper>
+                                    <x-filament::input.select x-model="custom['{{ $field['key'] }}']">
+                                        <option value=""></option>
+                                        @foreach ($field['options'] as $value => $label)
+                                            <option value="{{ $value }}">{{ $label }}</option>
+                                        @endforeach
+                                    </x-filament::input.select>
+                                </x-filament::input.wrapper>
+                                @break
+
+                            @case('boolean')
+                                <label class="fml-row">
+                                    <x-filament::input.checkbox x-model="custom['{{ $field['key'] }}']" />
+                                    <span class="fml-muted">{{ $field['label'] }}</span>
+                                </label>
+                                @break
+
+                            @default
+                                <x-filament::input.wrapper>
+                                    <x-filament::input
+                                        type="{{ in_array($field['type'], ['number', 'url', 'date'], true) ? $field['type'] : 'text' }}"
+                                        x-model="custom['{{ $field['key'] }}']"
+                                    />
+                                </x-filament::input.wrapper>
+                        @endswitch
+                    </div>
+                @endforeach
+
+                <x-filament::button size="sm" icon="heroicon-m-check" x-on:click="save()">
                     {{ __($t.'.actions.save_details') }}
                 </x-filament::button>
             </div>
@@ -206,6 +275,76 @@
                 {{ __($t.'.actions.rename') }}
             </x-filament::button>
 
+            @if ($canManage && $kind === MediaKind::Image && $item->isEditableImage() && Route::has('filament-media-library.image-edit'))
+                <div
+                    x-data="fmlImageEditor({
+                        src: @js($url),
+                        endpoint: @js(route('filament-media-library.image-edit', $item->id)),
+                        csrf: @js(csrf_token()),
+                        mime: @js($item->mime_type),
+                    })"
+                >
+                    <x-filament::button
+                        size="sm"
+                        color="gray"
+                        icon="heroicon-m-scissors"
+                        class="fml-btn-block"
+                        x-on:click="start()"
+                    >
+                        {{ __($t.'.actions.edit_image') }}
+                    </x-filament::button>
+
+                    <div x-show="open" x-cloak class="fml-modal" x-on:keydown.escape.window="open = false">
+                        <div class="fml-modal__window fml-modal__window--wide">
+                            <div class="fml-editor">
+                                <div class="fml-editor__stage">
+                                    <canvas
+                                        x-ref="canvas"
+                                        class="fml-editor__canvas"
+                                        x-on:mousedown.prevent="startCrop($event)"
+                                        x-on:mousemove="moveCrop($event)"
+                                        x-on:mouseup="endCrop()"
+                                        x-on:mouseleave="endCrop()"
+                                    ></canvas>
+                                    <div class="fml-editor__crop" x-bind:style="cropStyle()"></div>
+                                </div>
+
+                                <div class="fml-editor__tools">
+                                    <x-filament::icon-button icon="heroicon-m-arrow-path" color="gray"
+                                        x-on:click="rotate()" :label="__($t.'.actions.rotate')" />
+                                    <x-filament::icon-button icon="heroicon-m-arrows-right-left" color="gray"
+                                        x-on:click="flipX = ! flipX; draw()" :label="__($t.'.actions.flip_h')" />
+                                    <x-filament::icon-button icon="heroicon-m-arrows-up-down" color="gray"
+                                        x-on:click="flipY = ! flipY; draw()" :label="__($t.'.actions.flip_v')" />
+                                    <x-filament::icon-button icon="heroicon-m-backspace" color="gray"
+                                        x-on:click="reset()" :label="__($t.'.actions.reset')" />
+                                </div>
+                            </div>
+
+                            <div class="fml-modal__footer">
+                                <x-filament::button color="gray" size="sm" x-on:click="open = false">
+                                    {{ __($t.'.actions.cancel') }}
+                                </x-filament::button>
+                                <x-filament::button size="sm" x-on:click="save()" x-bind:disabled="saving">
+                                    {{ __($t.'.actions.save') }}
+                                </x-filament::button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            @endif
+
+            @if ($canUpload)
+                <x-filament::button
+                    size="sm"
+                    color="gray"
+                    icon="heroicon-m-document-duplicate"
+                    wire:click="duplicateOne(@js($item->id))"
+                >
+                    {{ __($t.'.actions.duplicate') }}
+                </x-filament::button>
+            @endif
+
             <label class="fml-row">
                 <x-filament::button tag="span" size="sm" color="gray" icon="heroicon-m-arrow-path">
                     {{ __($t.'.actions.replace') }}
@@ -219,6 +358,10 @@
             </label>
             <p class="fml-hint fml-muted">{{ __($t.'.messages.replace_hint') }}</p>
         @endif
+
+        @foreach ($this->customItemActions() as $action)
+            {{ $action(['record' => $item->id]) }}
+        @endforeach
 
         @if ($canDelete)
             <div class="fml-divider">

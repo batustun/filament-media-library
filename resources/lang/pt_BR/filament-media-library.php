@@ -23,6 +23,14 @@ return [
     ],
 
     'actions' => [
+        'duplicate' => 'Duplicar',
+        'toggle_extensions' => 'Mostrar extensões',
+        'edit_image' => 'Editar imagem',
+        'crop' => 'Recortar',
+        'rotate' => 'Girar',
+        'flip_h' => 'Inverter na horizontal',
+        'flip_v' => 'Inverter na vertical',
+        'reset' => 'Redefinir',
         'select' => 'Selecionar',
         'select_count' => 'Selecionar (:count)',
         'select_prompt' => 'Selecione um arquivo',
@@ -58,6 +66,8 @@ return [
     ],
 
     'fields' => [
+        'tags' => 'Etiquetas',
+        'tags_hint' => 'Separadas por vírgulas',
         'uploaded_by' => 'Enviado por',
         'status' => 'Status',
         'duration' => 'Duração',
@@ -85,6 +95,10 @@ return [
     ],
 
     'filters' => [
+        'tag' => 'Etiqueta',
+        'all_tags' => 'Todas as etiquetas',
+        'size_min' => 'Mín MB',
+        'size_max' => 'Máx MB',
         'date_from' => 'De',
         'date_to' => 'Até',
         'clear' => 'Limpar filtros',
@@ -100,6 +114,10 @@ return [
     ],
 
     'messages' => [
+        'duplicated' => 'Duplicado',
+        'tags_updated' => 'Etiquetas atualizadas',
+        'image_saved' => 'Imagem salva',
+        'uploading_chunks' => 'Enviando :done de :total partes…',
         'transcoding' => 'Ainda em processamento na plataforma — a reprodução ficará disponível quando terminar.',
         'transcode_failed' => 'A plataforma não conseguiu processar este vídeo.',
         'uploaded' => ':count arquivo enviado|:count arquivos enviados',

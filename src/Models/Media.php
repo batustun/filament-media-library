@@ -5,6 +5,11 @@ declare(strict_types=1);
 namespace Batustun\FilamentMediaLibrary\Models;
 
 use Batustun\FilamentMediaLibrary\Enums\MediaKind;
+use Batustun\FilamentMediaLibrary\Models\Concerns\BelongsToTenant;
+use Batustun\FilamentMediaLibrary\Models\Concerns\HasConversions;
+use Batustun\FilamentMediaLibrary\Models\Concerns\HasCustomMetadata;
+use Batustun\FilamentMediaLibrary\Models\Concerns\HasMediaTags;
+use Batustun\FilamentMediaLibrary\Models\Concerns\TracksUsage;
 use Batustun\FilamentMediaLibrary\Providers\Contracts\MediaProvider;
 use Batustun\FilamentMediaLibrary\Providers\MediaProviderRegistry;
 use Batustun\FilamentMediaLibrary\Support\MediaLibraryConfig;
@@ -13,9 +18,7 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
-use Illuminate\Database\Eloquent\Relations\MorphToMany;
 use Illuminate\Support\Carbon;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Throwable;
 
@@ -45,7 +48,12 @@ use Throwable;
  */
 class Media extends Model
 {
+    use BelongsToTenant;
+    use HasConversions;
+    use HasCustomMetadata;
+    use HasMediaTags;
     use HasUuids;
+    use TracksUsage;
 
     /**
      * LIKE escape character. Deliberately not a backslash: MySQL and SQLite
@@ -75,20 +83,6 @@ class Media extends Model
     public function uploader(): BelongsTo
     {
         return $this->belongsTo(MediaLibraryConfig::userModel(), 'uploaded_by');
-    }
-
-    /**
-     * @param  class-string<Model>  $type
-     * @return MorphToMany<Model, $this>
-     */
-    public function attachables(string $type): MorphToMany
-    {
-        return $this->morphedByMany(
-            $type,
-            'attachable',
-            MediaLibraryConfig::table('morph'),
-            'media_id',
-        )->withPivot(['collection', 'sort_order'])->withTimestamps();
     }
 
     // -----------------------------------------------------------------
@@ -196,83 +190,6 @@ class Media extends Model
         return $path;
     }
 
-    /**
-     * A time-limited URL for private disks. Returns null when the adapter
-     * does not support signing.
-     */
-    /**
-     * Generated variants, keyed by name, smallest first.
-     *
-     * Deliberately typed loosely: this is decoded JSON written by an earlier
-     * release of the package, so the shape is checked at the point of use
-     * rather than assumed.
-     *
-     * @return array<string, array<string, mixed>>
-     */
-    public function conversions(): array
-    {
-        $conversions = $this->meta['conversions'] ?? [];
-
-        return is_array($conversions) ? $conversions : [];
-    }
-
-    public function conversionUrl(string $name): ?string
-    {
-        $conversion = $this->conversions()[$name] ?? null;
-
-        if (! is_array($conversion) || ! isset($conversion['path'])) {
-            return null;
-        }
-
-        return $this->resolveUrlFor((string) $conversion['path']);
-    }
-
-    /**
-     * The cheapest image to show in a grid: the smallest generated variant,
-     * falling back to the original when there is none.
-     */
-    public function thumbnailUrl(): string
-    {
-        if ($poster = $this->mediaProvider()?->posterUrl($this)) {
-            return $poster;
-        }
-
-        foreach ($this->conversions() as $conversion) {
-            if (isset($conversion['path'])) {
-                return $this->resolveUrlFor((string) $conversion['path']);
-            }
-        }
-
-        return $this->publicUrl();
-    }
-
-    /**
-     * A srcset covering every variant plus the original, so the browser picks
-     * the right one for the viewport instead of always downloading full size.
-     */
-    public function srcset(): ?string
-    {
-        $entries = [];
-
-        foreach ($this->conversions() as $conversion) {
-            if (! isset($conversion['path'], $conversion['width'])) {
-                continue;
-            }
-
-            $entries[] = $this->resolveUrlFor((string) $conversion['path']).' '.((int) $conversion['width']).'w';
-        }
-
-        if ($entries === []) {
-            return null;
-        }
-
-        if ($this->width) {
-            $entries[] = $this->publicUrl().' '.((int) $this->width).'w';
-        }
-
-        return implode(', ', $entries);
-    }
-
     public function temporaryUrl(int $minutes = 5): ?string
     {
         try {
@@ -281,47 +198,6 @@ class Media extends Model
         } catch (Throwable) {
             return null;
         }
-    }
-
-    /**
-     * How many models this item is currently attached to. Answered from the
-     * eager-loaded aggregate when scopeWithUsageCount() was applied.
-     */
-    public function usageCount(): int
-    {
-        if (array_key_exists('usage_count', $this->attributes)) {
-            return (int) $this->attributes['usage_count'];
-        }
-
-        return (int) DB::table(MediaLibraryConfig::table('morph'))
-            ->where('media_id', $this->getKey())
-            ->count();
-    }
-
-    public function isInUse(): bool
-    {
-        return $this->usageCount() > 0;
-    }
-
-    /**
-     * The models this item is attached to, grouped by class and collection.
-     *
-     * @return array<int, array{type: string, collection: string, count: int}>
-     */
-    public function usageBreakdown(): array
-    {
-        return DB::table(MediaLibraryConfig::table('morph'))
-            ->where('media_id', $this->getKey())
-            ->groupBy('attachable_type', 'collection')
-            ->select('attachable_type', 'collection')
-            ->selectRaw('count(*) as total')
-            ->get()
-            ->map(fn (object $row): array => [
-                'type' => (string) $row->attachable_type,
-                'collection' => (string) $row->collection,
-                'count' => (int) $row->total,
-            ])
-            ->all();
     }
 
     public function existsOnDisk(): bool
@@ -348,21 +224,6 @@ class Media extends Model
         return $hash === null || $hash === ''
             ? $query->whereRaw('1 = 0')
             : $query->where('hash', $hash);
-    }
-
-    /**
-     * Eager-load how many models each item is attached to, as `usage_count`.
-     * Reading it off a listing costs one extra aggregate instead of one query
-     * per row.
-     */
-    public function scopeWithUsageCount(Builder $query): Builder
-    {
-        $pivot = MediaLibraryConfig::table('morph');
-        $media = MediaLibraryConfig::table('media');
-
-        return $query->selectRaw(
-            "{$media}.*, (select count(*) from {$pivot} where {$pivot}.media_id = {$media}.id) as usage_count",
-        );
     }
 
     /**

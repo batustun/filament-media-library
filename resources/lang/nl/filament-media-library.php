@@ -23,6 +23,14 @@ return [
     ],
 
     'actions' => [
+        'duplicate' => 'Dupliceren',
+        'toggle_extensions' => 'Bestandsextensies tonen',
+        'edit_image' => 'Afbeelding bewerken',
+        'crop' => 'Bijsnijden',
+        'rotate' => 'Draaien',
+        'flip_h' => 'Horizontaal spiegelen',
+        'flip_v' => 'Verticaal spiegelen',
+        'reset' => 'Herstellen',
         'select' => 'Selecteren',
         'select_count' => 'Selecteren (:count)',
         'select_prompt' => 'Selecteer een bestand',
@@ -58,6 +66,8 @@ return [
     ],
 
     'fields' => [
+        'tags' => 'Tags',
+        'tags_hint' => 'Gescheiden door komma’s',
         'uploaded_by' => 'Geüpload door',
         'status' => 'Status',
         'duration' => 'Duur',
@@ -85,6 +95,10 @@ return [
     ],
 
     'filters' => [
+        'tag' => 'Tag',
+        'all_tags' => 'Alle tags',
+        'size_min' => 'Min MB',
+        'size_max' => 'Max MB',
         'date_from' => 'Van',
         'date_to' => 'Tot',
         'clear' => 'Filters wissen',
@@ -100,6 +114,10 @@ return [
     ],
 
     'messages' => [
+        'duplicated' => 'Gedupliceerd',
+        'tags_updated' => 'Tags bijgewerkt',
+        'image_saved' => 'Afbeelding opgeslagen',
+        'uploading_chunks' => ':done van :total delen worden geüpload…',
         'transcoding' => 'Wordt nog verwerkt op het platform — afspelen kan zodra dat klaar is.',
         'transcode_failed' => 'Het platform kon deze video niet verwerken.',
         'uploaded' => ':count bestand geüpload|:count bestanden geüpload',

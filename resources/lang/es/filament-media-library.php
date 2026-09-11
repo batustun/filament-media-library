@@ -23,6 +23,14 @@ return [
     ],
 
     'actions' => [
+        'duplicate' => 'Duplicar',
+        'toggle_extensions' => 'Mostrar extensiones',
+        'edit_image' => 'Editar imagen',
+        'crop' => 'Recortar',
+        'rotate' => 'Rotar',
+        'flip_h' => 'Voltear horizontal',
+        'flip_v' => 'Voltear vertical',
+        'reset' => 'Restablecer',
         'select' => 'Seleccionar',
         'select_count' => 'Seleccionar (:count)',
         'select_prompt' => 'Selecciona un archivo',
@@ -58,6 +66,8 @@ return [
     ],
 
     'fields' => [
+        'tags' => 'Etiquetas',
+        'tags_hint' => 'Separadas por comas',
         'uploaded_by' => 'Subido por',
         'status' => 'Estado',
         'duration' => 'Duración',
@@ -85,6 +95,10 @@ return [
     ],
 
     'filters' => [
+        'tag' => 'Etiqueta',
+        'all_tags' => 'Todas las etiquetas',
+        'size_min' => 'Mín MB',
+        'size_max' => 'Máx MB',
         'date_from' => 'Desde',
         'date_to' => 'Hasta',
         'clear' => 'Limpiar filtros',
@@ -100,6 +114,10 @@ return [
     ],
 
     'messages' => [
+        'duplicated' => 'Duplicado',
+        'tags_updated' => 'Etiquetas actualizadas',
+        'image_saved' => 'Imagen guardada',
+        'uploading_chunks' => 'Subiendo :done de :total partes…',
         'transcoding' => 'Todavía se está procesando en la plataforma: la reproducción estará disponible al terminar.',
         'transcode_failed' => 'La plataforma no pudo procesar este vídeo.',
         'uploaded' => ':count archivo subido|:count archivos subidos',

@@ -4,8 +4,12 @@ declare(strict_types=1);
 
 namespace Batustun\FilamentMediaLibrary;
 
+use Batustun\FilamentMediaLibrary\Console\Commands\CleanChunksCommand;
 use Batustun\FilamentMediaLibrary\Console\Commands\DoctorCommand;
+use Batustun\FilamentMediaLibrary\Console\Commands\ImportSpatieMediaCommand;
 use Batustun\FilamentMediaLibrary\Console\Commands\SyncMediaCommand;
+use Batustun\FilamentMediaLibrary\Http\Controllers\ChunkedUploadController;
+use Batustun\FilamentMediaLibrary\Http\Controllers\ImageEditController;
 use Batustun\FilamentMediaLibrary\Http\Controllers\MediaUploadController;
 use Batustun\FilamentMediaLibrary\Http\Controllers\ProviderWebhookController;
 use Batustun\FilamentMediaLibrary\Livewire\MediaPicker;
@@ -39,7 +43,9 @@ class FilamentMediaLibraryServiceProvider extends PackageServiceProvider
             ->hasViews(static::$viewNamespace)
             ->hasTranslations()
             ->hasCommands([
+                CleanChunksCommand::class,
                 DoctorCommand::class,
+                ImportSpatieMediaCommand::class,
                 SyncMediaCommand::class,
             ]);
     }
@@ -99,6 +105,8 @@ class FilamentMediaLibraryServiceProvider extends PackageServiceProvider
             ->name('filament-media-library.')
             ->group(function (): void {
                 Route::post('upload', [MediaUploadController::class, 'store'])->name('upload');
+                Route::post('chunk', [ChunkedUploadController::class, 'store'])->name('chunk');
+                Route::post('{media}/image', [ImageEditController::class, 'store'])->name('image-edit');
                 Route::get('{media}/download', [MediaUploadController::class, 'download'])->name('download');
                 Route::delete('{media}', [MediaUploadController::class, 'destroy'])->name('destroy');
             });

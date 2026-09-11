@@ -23,6 +23,14 @@ return [
     ],
 
     'actions' => [
+        'duplicate' => 'Çoğalt',
+        'toggle_extensions' => 'Dosya uzantılarını göster',
+        'edit_image' => 'Görseli düzenle',
+        'crop' => 'Kırp',
+        'rotate' => 'Döndür',
+        'flip_h' => 'Yatay çevir',
+        'flip_v' => 'Dikey çevir',
+        'reset' => 'Sıfırla',
         'select' => 'Seç',
         'select_count' => 'Seç (:count)',
         'select_prompt' => 'Bir dosya seçin',
@@ -58,6 +66,8 @@ return [
     ],
 
     'fields' => [
+        'tags' => 'Etiketler',
+        'tags_hint' => 'Virgülle ayırın',
         'uploaded_by' => 'Yükleyen',
         'status' => 'Durum',
         'duration' => 'Süre',
@@ -85,6 +95,10 @@ return [
     ],
 
     'filters' => [
+        'tag' => 'Etiket',
+        'all_tags' => 'Tüm etiketler',
+        'size_min' => 'En az MB',
+        'size_max' => 'En çok MB',
         'date_from' => 'Başlangıç',
         'date_to' => 'Bitiş',
         'clear' => 'Filtreleri temizle',
@@ -100,6 +114,10 @@ return [
     ],
 
     'messages' => [
+        'duplicated' => 'Çoğaltıldı',
+        'tags_updated' => 'Etiketler güncellendi',
+        'image_saved' => 'Görsel kaydedildi',
+        'uploading_chunks' => ':total parçadan :done yükleniyor…',
         'transcoding' => 'Platformda hâlâ işleniyor — bitince oynatılabilir olacak.',
         'transcode_failed' => 'Platform bu videoyu işleyemedi.',
         'uploaded' => ':count dosya yüklendi',

@@ -36,7 +36,78 @@
             <option value="name">{{ __($t.'.filters.sort.name') }}</option>
             <option value="size_desc">{{ __($t.'.filters.sort.size_desc') }}</option>
             <option value="size_asc">{{ __($t.'.filters.sort.size_asc') }}</option>
+            @foreach ($this->availableSorters() as $sorter)
+                <option value="{{ $sorter->getKey() }}">{{ $sorter->getLabel() }}</option>
+            @endforeach
         </x-filament::input.select>
+    </x-filament::input.wrapper>
+
+    @if ($tags = $this->availableTags())
+        <x-filament::input.wrapper>
+            <x-filament::input.select wire:model.live="tagFilter" :aria-label="__($t.'.filters.tag')">
+                <option value="">{{ __($t.'.filters.all_tags') }}</option>
+                @foreach ($tags as $slug => $name)
+                    <option value="{{ $slug }}">{{ $name }}</option>
+                @endforeach
+            </x-filament::input.select>
+        </x-filament::input.wrapper>
+    @endif
+
+    @foreach ($this->availableFilters() as $filter)
+        <x-filament::input.wrapper>
+            @switch ($filter->getType())
+                @case('select')
+                    <x-filament::input.select
+                        wire:model.live="customFilters.{{ $filter->getKey() }}"
+                        :aria-label="$filter->getLabel()"
+                    >
+                        <option value="">{{ $filter->getLabel() }}</option>
+                        @foreach ($filter->getOptions() as $value => $label)
+                            <option value="{{ $value }}">{{ $label }}</option>
+                        @endforeach
+                    </x-filament::input.select>
+                    @break
+
+                @case('boolean')
+                    <label class="fml-row fml-checkbox">
+                        <x-filament::input.checkbox wire:model.live="customFilters.{{ $filter->getKey() }}" />
+                        <span>{{ $filter->getLabel() }}</span>
+                    </label>
+                    @break
+
+                @default
+                    <x-filament::input
+                        type="text"
+                        wire:model.live.debounce.350ms="customFilters.{{ $filter->getKey() }}"
+                        :placeholder="$filter->getPlaceholder()"
+                        :aria-label="$filter->getLabel()"
+                    />
+            @endswitch
+        </x-filament::input.wrapper>
+    @endforeach
+
+    <x-filament::input.wrapper>
+        <x-filament::input
+            type="number"
+            min="0"
+            step="0.1"
+            class="fml-input-narrow"
+            wire:model.live.debounce.500ms="sizeMin"
+            :placeholder="__($t.'.filters.size_min')"
+            :aria-label="__($t.'.filters.size_min')"
+        />
+    </x-filament::input.wrapper>
+
+    <x-filament::input.wrapper>
+        <x-filament::input
+            type="number"
+            min="0"
+            step="0.1"
+            class="fml-input-narrow"
+            wire:model.live.debounce.500ms="sizeMax"
+            :placeholder="__($t.'.filters.size_max')"
+            :aria-label="__($t.'.filters.size_max')"
+        />
     </x-filament::input.wrapper>
 
     <x-filament::input.wrapper>
@@ -98,6 +169,20 @@
                 {{ __($t.'.actions.clear_selection') }}
             </x-filament::link>
         @endif
+
+        @foreach ($this->customBulkActions() as $action)
+            @if ($selectedCount > 0)
+                {{ $action }}
+            @endif
+        @endforeach
+
+        <x-filament::icon-button
+            :icon="$showExtensions ? 'heroicon-m-eye' : 'heroicon-m-eye-slash'"
+            color="gray"
+            size="sm"
+            wire:click="toggleExtensions"
+            :label="__($t.'.actions.toggle_extensions')"
+        />
 
         <x-filament::icon-button
             icon="heroicon-m-squares-2x2"

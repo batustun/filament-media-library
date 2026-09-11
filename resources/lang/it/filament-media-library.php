@@ -23,6 +23,14 @@ return [
     ],
 
     'actions' => [
+        'duplicate' => 'Duplica',
+        'toggle_extensions' => 'Mostra le estensioni',
+        'edit_image' => 'Modifica immagine',
+        'crop' => 'Ritaglia',
+        'rotate' => 'Ruota',
+        'flip_h' => 'Capovolgi orizzontalmente',
+        'flip_v' => 'Capovolgi verticalmente',
+        'reset' => 'Reimposta',
         'select' => 'Seleziona',
         'select_count' => 'Seleziona (:count)',
         'select_prompt' => 'Seleziona un file',
@@ -58,6 +66,8 @@ return [
     ],
 
     'fields' => [
+        'tags' => 'Tag',
+        'tags_hint' => 'Separati da virgole',
         'uploaded_by' => 'Caricato da',
         'status' => 'Stato',
         'duration' => 'Durata',
@@ -85,6 +95,10 @@ return [
     ],
 
     'filters' => [
+        'tag' => 'Tag',
+        'all_tags' => 'Tutti i tag',
+        'size_min' => 'Min MB',
+        'size_max' => 'Max MB',
         'date_from' => 'Dal',
         'date_to' => 'Al',
         'clear' => 'Azzera i filtri',
@@ -100,6 +114,10 @@ return [
     ],
 
     'messages' => [
+        'duplicated' => 'Duplicato',
+        'tags_updated' => 'Tag aggiornati',
+        'image_saved' => 'Immagine salvata',
+        'uploading_chunks' => 'Caricamento di :done su :total parti…',
         'transcoding' => 'Ancora in elaborazione sulla piattaforma: la riproduzione sarà disponibile al termine.',
         'transcode_failed' => 'La piattaforma non è riuscita a elaborare questo video.',
         'uploaded' => ':count file caricato|:count file caricati',
