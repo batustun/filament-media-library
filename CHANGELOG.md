@@ -5,14 +5,15 @@ All notable changes to `batustun/filament-media-library` are documented here.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [Unreleased](https://github.com/batustun/filament-media-library/compare/v1.0.0...HEAD)
 
-## [1.0.0] - 2026-09-12
+## [1.0.0](https://github.com/batustun/filament-media-library/releases/tag/v1.0.0) - 2026-09-12
 
 First public release, extracted from a private application and hardened for
 distribution.
 
 ### Added
+
 - Full-page Filament media library with folder navigation, search, kind filter,
   sorting, grid/list views and a detail panel.
 - `MediaInput` — a `FileUpload` field backed by the library, with a modal picker
@@ -27,6 +28,7 @@ distribution.
   resolvers, navigation, permissions).
 
 ### Notes for anyone migrating from the pre-release internal package
+
 - Namespace is now `Batustun\FilamentMediaLibrary\` (was `Borsa\MediaLibrary\`).
 - Config, view and translation namespace is now `filament-media-library`
   (was `media-library`, which collided head-on with `spatie/laravel-medialibrary`).
@@ -36,5 +38,27 @@ distribution.
 - Table names are unchanged: `media_library_items`, `media_library_folders`,
   `media_library_attachables`.
 
-[Unreleased]: https://github.com/batustun/filament-media-library/compare/v1.0.0...HEAD
-[1.0.0]: https://github.com/batustun/filament-media-library/releases/tag/v1.0.0
+## [v1.0.0](https://github.com/batustun/filament-media-library/compare/v1.0.0...v1.0.0) - 2026-09-11
+
+First public release.
+
+A WordPress-style media library for **Filament v5** — disk agnostic, database indexed, with folder navigation, search, a modal picker, a `FileUpload` field and a RichEditor attachment provider.
+
+### Highlights
+
+- Works on `public`, `local`, `s3`, MinIO, DigitalOcean Spaces, BunnyCDN and FTP/SFTP through one code path
+- Uploads are **streamed**, so a 512 MB file costs kilobytes of memory
+- Public URLs are resolved **at read time** — change your CDN hostname and every existing record follows, with no backfill
+- No ACL is sent unless you configure one, so S3 buckets with ACLs disabled work out of the box
+- Per-panel configuration: two panels can point at two different disks
+- English + Turkish translations, light and dark mode, no Tailwind build step
+- Optional permission gate (`media.view` / `upload` / `delete` / `manage`) on every entry point
+
+### Install
+
+```bash
+composer require batustun/filament-media-library
+php artisan migrate
+
+```
+See the [README](https://github.com/batustun/filament-media-library#readme) for panel registration and disk recipes.
