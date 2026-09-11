@@ -1,0 +1,784 @@
+/*
+ * Filament Media Library — layout primitives.
+ *
+ * This stylesheet deliberately contains NO buttons, inputs, badges, modals,
+ * dropdowns or pagination: those are Filament's own Blade components, so they
+ * inherit the panel's theme, brand colour and dark mode for free.
+ *
+ * What remains is the handful of things Filament has no component for — the
+ * responsive browser layout, the thumbnail grid, the drop zone and the detail
+ * panel. Every colour here reads a Filament CSS variable (`--primary-*`,
+ * `--gray-*`, `--danger-*`), which Filament emits on :root as complete
+ * oklch() colours. Never wrap them in rgb(): that silently invalidates the
+ * declaration and the panel's brand colour is lost.
+ *
+ * Spacing and sizing use logical properties throughout, so an RTL locale
+ * (ar, fa, he) mirrors correctly with no extra rules.
+ */
+
+.fml {
+    --fml-surface: var(--gray-50);
+    --fml-panel: #fff;
+    --fml-border: var(--gray-200);
+    --fml-text: var(--gray-950);
+    --fml-text-muted: var(--gray-500);
+    --fml-accent: var(--primary-600);
+    --fml-overlay: color-mix(in oklab, #fff 80%, transparent);
+    --fml-radius: 0.75rem;
+    --fml-radius-sm: 0.5rem;
+
+    color: var(--fml-text);
+}
+
+:where(.dark, .dark *) .fml {
+    --fml-surface: var(--gray-950);
+    --fml-panel: var(--gray-900);
+    --fml-border: color-mix(in oklab, #fff 10%, transparent);
+    --fml-text: #fff;
+    --fml-text-muted: var(--gray-400);
+    --fml-accent: var(--primary-500);
+    --fml-overlay: color-mix(in oklab, var(--gray-900) 80%, transparent);
+}
+
+/* ----------------------------------------------------------------- layout */
+
+.fml-layout {
+    display: grid;
+    gap: 1rem;
+    align-items: start;
+    grid-template-columns: minmax(0, 1fr);
+}
+
+@media (min-width: 768px) {
+    .fml-layout {
+        grid-template-columns: minmax(0, 15rem) minmax(0, 1fr);
+    }
+}
+
+@media (min-width: 1280px) {
+    .fml-layout--detail {
+        grid-template-columns: minmax(0, 14rem) minmax(0, 1fr) minmax(0, 21rem);
+    }
+}
+
+.fml-layout__main {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    min-width: 0;
+}
+
+.fml-layout__aside {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    min-width: 0;
+}
+
+/* On anything narrower than xl the detail panel drops to full width rather
+   than squeezing the grid into unreadable columns. */
+@media (max-width: 1279px) {
+    .fml-layout__detail {
+        grid-column: 1 / -1;
+    }
+}
+
+/* The folder sidebar is a collapsible disclosure on phones and a static
+   column from md up, so the grid never starts below the fold. */
+.fml-aside-toggle {
+    display: block;
+}
+
+@media (min-width: 768px) {
+    .fml-aside-toggle {
+        display: none;
+    }
+
+    .fml-layout__aside[data-collapsed='true'] .fml-aside-body {
+        display: block;
+    }
+}
+
+/* ------------------------------------------------------------------ shell */
+
+.fml-panel {
+    background-color: var(--fml-panel);
+    border: 1px solid var(--fml-border);
+    border-radius: var(--fml-radius);
+    box-shadow: 0 1px 2px 0 color-mix(in oklab, var(--gray-950) 5%, transparent);
+}
+
+.fml-panel__header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem;
+    padding-block: 0.625rem;
+    padding-inline: 0.875rem;
+    border-block-end: 1px solid var(--fml-border);
+}
+
+.fml-panel__body {
+    padding: 0.875rem;
+}
+
+.fml-label {
+    font-size: 0.6875rem;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: var(--fml-text-muted);
+}
+
+.fml-muted {
+    color: var(--fml-text-muted);
+}
+
+.fml-toolbar {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.75rem;
+}
+
+.fml-toolbar__search {
+    flex: 1 1 14rem;
+    min-width: 0;
+}
+
+.fml-toolbar__end {
+    margin-inline-start: auto;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+/* ---------------------------------------------------------------- folders */
+
+.fml-folders {
+    display: flex;
+    flex-direction: column;
+    gap: 0.125rem;
+    max-block-size: 60vh;
+    overflow-y: auto;
+    padding: 0.5rem;
+    margin: 0;
+    list-style: none;
+}
+
+.fml-folder {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    inline-size: 100%;
+    padding-block: 0.375rem;
+    padding-inline: 0.5rem;
+    border: 0;
+    border-radius: var(--fml-radius-sm);
+    background: none;
+    color: var(--fml-text);
+    font-size: 0.875rem;
+    text-align: start;
+    cursor: pointer;
+    transition: background-color 75ms ease;
+}
+
+.fml-folder:hover {
+    background-color: color-mix(in oklab, var(--gray-500) 10%, transparent);
+}
+
+.fml-folder:focus-visible {
+    outline: 2px solid var(--fml-accent);
+    outline-offset: -2px;
+}
+
+.fml-folder[aria-current='true'] {
+    background-color: color-mix(in oklab, var(--primary-500) 12%, transparent);
+    color: var(--fml-accent);
+    font-weight: 600;
+}
+
+.fml-folder--drop-target {
+    outline: 2px dashed var(--fml-accent);
+    outline-offset: -2px;
+    background-color: color-mix(in oklab, var(--primary-500) 8%, transparent);
+}
+
+.fml-folder__name {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.fml-folder__count {
+    margin-inline-start: auto;
+    font-size: 0.6875rem;
+    color: var(--fml-text-muted);
+    font-variant-numeric: tabular-nums;
+}
+
+/* ------------------------------------------------------------------- grid */
+
+.fml-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(9rem, 1fr));
+    gap: 0.75rem;
+}
+
+@media (max-width: 480px) {
+    .fml-grid {
+        grid-template-columns: repeat(auto-fill, minmax(7.5rem, 1fr));
+        gap: 0.5rem;
+    }
+}
+
+.fml-card {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    background-color: var(--fml-panel);
+    border: 1px solid var(--fml-border);
+    border-radius: var(--fml-radius);
+    box-shadow: 0 1px 2px 0 color-mix(in oklab, var(--gray-950) 5%, transparent);
+    transition: box-shadow 100ms ease, border-color 100ms ease, transform 100ms ease;
+    cursor: pointer;
+}
+
+.fml-card:hover {
+    box-shadow: 0 10px 15px -3px color-mix(in oklab, var(--gray-950) 10%, transparent);
+}
+
+.fml-card:focus-visible {
+    outline: 2px solid var(--fml-accent);
+    outline-offset: 2px;
+}
+
+.fml-card[aria-selected='true'] {
+    border-color: var(--fml-accent);
+    box-shadow: 0 0 0 2px var(--fml-accent);
+}
+
+.fml-card__thumb {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    inline-size: 100%;
+    aspect-ratio: 1 / 1;
+    overflow: hidden;
+    background-color: color-mix(in oklab, var(--gray-500) 8%, transparent);
+}
+
+.fml-card__thumb img {
+    inline-size: 100%;
+    block-size: 100%;
+    object-fit: cover;
+}
+
+.fml-card__fallback {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.375rem;
+}
+
+.fml-card__ext {
+    font-size: 0.625rem;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--fml-text-muted);
+}
+
+.fml-card__check {
+    position: absolute;
+    inset-block-start: 0.375rem;
+    inset-inline-start: 0.375rem;
+    z-index: 10;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    inline-size: 1.375rem;
+    block-size: 1.375rem;
+    border: 1px solid var(--fml-border);
+    border-radius: 0.375rem;
+    background-color: var(--fml-panel);
+    color: transparent;
+    opacity: 0;
+    transition: opacity 100ms ease;
+}
+
+.fml-card:hover .fml-card__check,
+.fml-card:focus-within .fml-card__check,
+.fml-card[aria-selected='true'] .fml-card__check {
+    opacity: 1;
+}
+
+.fml-card[aria-selected='true'] .fml-card__check {
+    background-color: var(--fml-accent);
+    border-color: var(--fml-accent);
+    color: #fff;
+}
+
+.fml-card__badge {
+    position: absolute;
+    inset-block-start: 0.375rem;
+    inset-inline-end: 0.375rem;
+    z-index: 10;
+}
+
+.fml-card__meta {
+    display: flex;
+    flex-direction: column;
+    gap: 0.125rem;
+    padding-block: 0.375rem 0.5rem;
+    padding-inline: 0.5rem;
+    border-block-start: 1px solid var(--fml-border);
+    min-inline-size: 0;
+}
+
+.fml-card__name {
+    font-size: 0.75rem;
+    font-weight: 500;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.fml-card__sub {
+    font-size: 0.6875rem;
+    color: var(--fml-text-muted);
+    font-variant-numeric: tabular-nums;
+}
+
+/* ------------------------------------------------------------------ table */
+
+.fml-table-wrap {
+    overflow-x: auto;
+    background-color: var(--fml-panel);
+    border: 1px solid var(--fml-border);
+    border-radius: var(--fml-radius);
+}
+
+.fml-table {
+    inline-size: 100%;
+    min-inline-size: 36rem;
+    border-collapse: collapse;
+    font-size: 0.875rem;
+}
+
+.fml-table th {
+    padding-block: 0.625rem;
+    padding-inline: 0.75rem;
+    text-align: start;
+    font-size: 0.6875rem;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: var(--fml-text-muted);
+    background-color: color-mix(in oklab, var(--gray-500) 6%, transparent);
+    white-space: nowrap;
+}
+
+.fml-table td {
+    padding-block: 0.5rem;
+    padding-inline: 0.75rem;
+    border-block-start: 1px solid var(--fml-border);
+    vertical-align: middle;
+}
+
+.fml-table tbody tr {
+    cursor: pointer;
+    transition: background-color 75ms ease;
+}
+
+.fml-table tbody tr:hover {
+    background-color: color-mix(in oklab, var(--gray-500) 6%, transparent);
+}
+
+.fml-table tbody tr[aria-selected='true'] {
+    background-color: color-mix(in oklab, var(--primary-500) 10%, transparent);
+}
+
+.fml-table__file {
+    display: flex;
+    align-items: center;
+    gap: 0.625rem;
+    min-inline-size: 0;
+}
+
+.fml-table__thumb {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    inline-size: 2.25rem;
+    block-size: 2.25rem;
+    flex-shrink: 0;
+    overflow: hidden;
+    border-radius: 0.375rem;
+    background-color: color-mix(in oklab, var(--gray-500) 8%, transparent);
+}
+
+.fml-table__thumb img {
+    inline-size: 100%;
+    block-size: 100%;
+    object-fit: cover;
+}
+
+.fml-table__names {
+    min-inline-size: 0;
+}
+
+.fml-table__names p {
+    margin: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.fml-table__names p:first-child {
+    font-weight: 500;
+}
+
+.fml-table__names p:last-child {
+    font-size: 0.75rem;
+    color: var(--fml-text-muted);
+}
+
+/* --------------------------------------------------------------- dropzone */
+
+.fml-dropzone {
+    position: relative;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.875rem;
+    border: 1px dashed var(--fml-border);
+    border-radius: var(--fml-radius);
+    background-color: color-mix(in oklab, var(--gray-500) 4%, transparent);
+    transition: border-color 100ms ease, background-color 100ms ease;
+}
+
+.fml-dropzone[data-active='true'] {
+    border-color: var(--fml-accent);
+    border-style: solid;
+    background-color: color-mix(in oklab, var(--primary-500) 8%, transparent);
+}
+
+.fml-dropzone__hint {
+    font-size: 0.8125rem;
+    color: var(--fml-text-muted);
+}
+
+.fml-dropzone__overlay {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    border-radius: var(--fml-radius);
+    background-color: var(--fml-overlay);
+    backdrop-filter: blur(2px);
+    font-size: 0.875rem;
+    font-weight: 500;
+}
+
+/* A visually hidden file input that a <label> still activates. */
+.fml-sr-only {
+    position: absolute;
+    inline-size: 1px;
+    block-size: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+    border: 0;
+}
+
+/* ----------------------------------------------------------------- detail */
+
+.fml-detail {
+    position: sticky;
+    inset-block-start: 1rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.875rem;
+}
+
+.fml-preview {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+    border: 1px solid var(--fml-border);
+    border-radius: var(--fml-radius-sm);
+    background-color: color-mix(in oklab, var(--gray-500) 8%, transparent);
+    min-block-size: 8rem;
+}
+
+.fml-preview img,
+.fml-preview video {
+    display: block;
+    inline-size: 100%;
+    max-block-size: 16rem;
+    object-fit: contain;
+}
+
+.fml-preview iframe {
+    inline-size: 100%;
+    block-size: 16rem;
+    border: 0;
+}
+
+.fml-preview audio {
+    inline-size: 100%;
+    padding: 1rem;
+}
+
+.fml-facts {
+    display: flex;
+    flex-direction: column;
+    gap: 0.3125rem;
+    margin: 0;
+    font-size: 0.75rem;
+}
+
+.fml-facts > div {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 0.75rem;
+}
+
+.fml-facts dt {
+    margin: 0;
+    color: var(--fml-text-muted);
+    white-space: nowrap;
+}
+
+.fml-facts dd {
+    margin: 0;
+    text-align: end;
+    overflow-wrap: anywhere;
+}
+
+.fml-field {
+    display: flex;
+    flex-direction: column;
+    gap: 0.375rem;
+}
+
+.fml-stack {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.fml-row {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.fml-row > .fml-row__grow {
+    flex: 1 1 auto;
+    min-inline-size: 0;
+}
+
+.fml-divider {
+    border-block-start: 1px solid var(--fml-border);
+    padding-block-start: 0.75rem;
+}
+
+/* --------------------------------------------------------------- skeleton */
+
+.fml-skeleton {
+    border-radius: var(--fml-radius);
+    background-color: color-mix(in oklab, var(--gray-500) 12%, transparent);
+    animation: fml-pulse 1.6s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+.fml-skeleton--card {
+    aspect-ratio: 1 / 1;
+}
+
+@keyframes fml-pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.45; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .fml-skeleton,
+    .fml-card,
+    .fml-folder,
+    .fml-dropzone {
+        animation: none;
+        transition: none;
+    }
+}
+
+[x-cloak] {
+    display: none !important;
+}
+
+/* ------------------------------------------------------------------ icons */
+
+.fml-icon-xs { inline-size: 0.875rem; block-size: 0.875rem; }
+.fml-icon-sm { inline-size: 1rem;     block-size: 1rem; }
+.fml-icon-lg { inline-size: 2rem;     block-size: 2rem; }
+.fml-icon-xl { inline-size: 3rem;     block-size: 3rem; }
+
+.fml-nowrap { white-space: nowrap; }
+
+.fml-hint {
+    margin: 0;
+    font-size: 0.75rem;
+    line-height: 1.4;
+}
+
+.fml-danger { color: var(--danger-600); }
+
+:where(.dark, .dark *) .fml-danger { color: var(--danger-400); }
+
+.fml-callout { margin-block-end: 0.5rem; }
+
+.fml-table__check {
+    inline-size: 2.5rem;
+    text-align: center;
+}
+
+.fml-folder-item {
+    display: flex;
+    align-items: center;
+    gap: 0.125rem;
+}
+
+.fml-folder-item > .fml-folder {
+    min-inline-size: 0;
+}
+
+.fml-pagination {
+    margin-block-start: 0.75rem;
+}
+
+/* Dim results while a filter round trip is in flight, so the grid reads as
+   "updating" rather than briefly showing stale rows as final. */
+.fml-loading {
+    opacity: 0.55;
+    pointer-events: none;
+    transition: opacity 120ms ease;
+}
+
+/* ----------------------------------------------------------------- dialogs */
+
+.fml-modal {
+    position: fixed;
+    inset: 0;
+    z-index: 60;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 1rem;
+    background-color: color-mix(in oklab, var(--gray-950) 45%, transparent);
+    backdrop-filter: blur(2px);
+}
+
+.fml-modal__window {
+    inline-size: 100%;
+    max-inline-size: 26rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+    overflow: hidden;
+    background-color: var(--fml-panel);
+    border-radius: var(--fml-radius);
+    box-shadow: 0 20px 25px -5px color-mix(in oklab, var(--gray-950) 25%, transparent);
+}
+
+.fml-modal__body {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    padding: 1.25rem;
+}
+
+.fml-modal__title {
+    margin: 0;
+    font-size: 1rem;
+    font-weight: 600;
+}
+
+.fml-modal__desc {
+    margin: 0;
+    font-size: 0.8125rem;
+    line-height: 1.5;
+    color: var(--fml-text-muted);
+}
+
+.fml-modal__input {
+    inline-size: 100%;
+    margin-block-start: 0.25rem;
+}
+
+.fml-modal__footer {
+    display: flex;
+    justify-content: flex-end;
+    gap: 0.5rem;
+    padding-block: 0.875rem;
+    padding-inline: 1.25rem;
+    border-block-start: 1px solid var(--fml-border);
+    background-color: color-mix(in oklab, var(--gray-500) 4%, transparent);
+}
+
+/* ------------------------------------------------------------------ picker */
+
+.fml-picker {
+    display: flex;
+    flex-direction: column;
+    min-block-size: 60vh;
+}
+
+/* The picker lives inside a modal, so the results scroll rather than growing
+   the modal past the viewport. */
+.fml-picker__scroll {
+    flex: 1 1 auto;
+    min-block-size: 0;
+    max-block-size: 46vh;
+    overflow-y: auto;
+    padding-inline-end: 0.25rem;
+}
+
+.fml-picker__footer {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+    padding-block-start: 0.875rem;
+    border-block-start: 1px solid var(--fml-border);
+}
+
+/* A thumbnail the browser cannot decode (HEIC in Chrome/Firefox, a corrupt
+   file) falls back to the type icon instead of a broken-image glyph. */
+.fml-card__thumb--broken::after,
+.fml-thumb-fallback::after {
+    content: '';
+    display: block;
+    inline-size: 1.75rem;
+    block-size: 1.75rem;
+    border-radius: 0.25rem;
+    background-color: color-mix(in oklab, var(--gray-500) 25%, transparent);
+}
+
+.fml-thumb-fallback {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    inline-size: 100%;
+    block-size: 100%;
+}

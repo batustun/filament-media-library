@@ -1,0 +1,85 @@
+<?php
+
+declare(strict_types=1);
+
+namespace Batustun\FilamentMediaLibrary\Tests;
+
+use Batustun\FilamentMediaLibrary\FilamentMediaLibraryServiceProvider;
+use BladeUI\Heroicons\BladeHeroiconsServiceProvider;
+use BladeUI\Icons\BladeIconsServiceProvider;
+use Filament\Actions\ActionsServiceProvider;
+use Filament\FilamentServiceProvider;
+use Filament\Forms\FormsServiceProvider;
+use Filament\Infolists\InfolistsServiceProvider;
+use Filament\Notifications\NotificationsServiceProvider;
+use Filament\Schemas\SchemasServiceProvider;
+use Filament\Support\SupportServiceProvider;
+use Filament\Tables\TablesServiceProvider;
+use Filament\Widgets\WidgetsServiceProvider;
+use Illuminate\Foundation\Application;
+use Livewire\LivewireServiceProvider;
+use Orchestra\Testbench\TestCase as Orchestra;
+
+abstract class TestCase extends Orchestra
+{
+    protected function setUp(): void
+    {
+        parent::setUp();
+
+        $this->artisan('migrate')->run();
+    }
+
+    /** @return array<int, class-string> */
+    protected function getPackageProviders($app): array
+    {
+        return array_values(array_filter([
+            ActionsServiceProvider::class,
+            BladeIconsServiceProvider::class,
+            BladeHeroiconsServiceProvider::class,
+            FilamentServiceProvider::class,
+            FormsServiceProvider::class,
+            InfolistsServiceProvider::class,
+            LivewireServiceProvider::class,
+            NotificationsServiceProvider::class,
+            class_exists(SchemasServiceProvider::class) ? SchemasServiceProvider::class : null,
+            SupportServiceProvider::class,
+            TablesServiceProvider::class,
+            WidgetsServiceProvider::class,
+            FilamentMediaLibraryServiceProvider::class,
+        ]));
+    }
+
+    public function getEnvironmentSetUp($app): void
+    {
+        /** @var Application $app */
+        $app['config']->set('database.default', 'testing');
+        $app['config']->set('database.connections.testing', [
+            'driver' => 'sqlite',
+            'database' => ':memory:',
+            'prefix' => '',
+        ]);
+
+        $app['config']->set('filesystems.disks.public', [
+            'driver' => 'local',
+            'root' => storage_path('app/public'),
+            'url' => 'http://localhost/storage',
+            'visibility' => 'public',
+        ]);
+
+        // A disk with no `url` key at all — the "plain local" case that used to
+        // make publicUrl() throw.
+        $app['config']->set('filesystems.disks.private', [
+            'driver' => 'local',
+            'root' => storage_path('app/private'),
+        ]);
+
+        $app['config']->set('filesystems.disks.cdn', [
+            'driver' => 'local',
+            'root' => storage_path('app/cdn'),
+            'url' => 'http://storage.example.test',
+        ]);
+
+        $app['config']->set('filament-media-library.default_disk', 'public');
+        $app['config']->set('filament-media-library.permissions.enabled', false);
+    }
+}

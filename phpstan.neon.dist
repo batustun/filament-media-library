@@ -1,0 +1,48 @@
+includes:
+    - vendor/larastan/larastan/extension.neon
+    # Teaches PHPStan that $this inside a Pest closure is the TestCase, so the
+    # HTTP and time-travel helpers resolve instead of being reported missing.
+    - vendor/pestphp/pest/extension.neon
+
+parameters:
+    level: 5
+
+    paths:
+        - src
+        - config
+        - database
+        - tests
+
+    # Tell larastan where this PACKAGE keeps its config and views; by default it
+    # resolves both against a host application and reports false positives.
+    configDirectories:
+        - config
+    viewDirectories:
+        - resources/views
+
+    excludePaths:
+        # Optional integration: spatie/laravel-permission is a suggest, not a require.
+        - src/Database/Seeders/MediaPermissionSeeder.php
+
+    ignoreErrors:
+        # Pest binds $this inside a test closure to the TestCase at runtime,
+        # but the mapping lives in tests/Pest.php `uses()`, which PHPStan cannot
+        # execute — so every framework test helper reads as missing. The tests
+        # themselves prove these calls work.
+        -
+            identifier: method.notFound
+            message: '#Pest\\PendingCalls\\TestCall#'
+            path: tests
+
+        # larastan resolves `view-string` by scanning a host application's
+        # resources/views. It has no model for Laravel's view NAMESPACES, so
+        # every "package::view" reference a package makes is reported. The views
+        # below do exist — resources/views/livewire/media-picker.blade.php and
+        # resources/views/components/picker-modal.blade.php — and the test suite
+        # renders them.
+        -
+            identifier: argument.type
+            message: '#expects view-string, string given#'
+            paths:
+                - src/Livewire/MediaPicker.php
+                - src/Filament/Components/MediaInput.php

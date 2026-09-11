@@ -1,0 +1,46 @@
+name: update changelog
+
+on:
+  release:
+    types: [released]
+
+permissions:
+  contents: write
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          ref: main
+
+      # The changelog entry for a release is often written by hand before
+      # tagging. Without this guard the action appends a second section for the
+      # same version, and the next local commit then conflicts with it.
+      - name: Check whether this version is already documented
+        id: check
+        run: |
+          version="${{ github.event.release.tag_name }}"
+          if grep -qE "^## \[?v?${version#v}\]?" CHANGELOG.md; then
+            echo "documented=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "documented=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Update CHANGELOG
+        if: steps.check.outputs.documented == 'false'
+        uses: stefanzweifel/changelog-updater-action@v1
+        with:
+          latest-version: ${{ github.event.release.name }}
+          release-notes: ${{ github.event.release.body }}
+
+      - name: Commit updated CHANGELOG
+        if: steps.check.outputs.documented == 'false'
+        uses: stefanzweifel/git-auto-commit-action@v5
+        with:
+          branch: main
+          commit_message: 'docs: update CHANGELOG for ${{ github.event.release.name }}'
+          file_pattern: CHANGELOG.md
