@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.4.2] - 2026-09-12
+
+### Fixed
+- Uploading from inside the picker confirmed the selection immediately, which
+  closes the modal — so the file just added flashed past without ever appearing
+  in the grid, and read as "the upload did nothing". The upload is now selected
+  and the modal stays open; the editor confirms when ready.
+
 ## [1.4.1] - 2026-09-12
 
 ### Fixed
@@ -215,7 +223,8 @@ First public release.
 - English, Turkish, German, French, Spanish, Italian, Dutch, Brazilian
   Portuguese, Russian and Arabic. RTL works without extra rules.
 
-[Unreleased]: https://github.com/batustun/filament-media-library/compare/v1.4.1...HEAD
+[Unreleased]: https://github.com/batustun/filament-media-library/compare/v1.4.2...HEAD
+[1.4.2]: https://github.com/batustun/filament-media-library/compare/v1.4.1...v1.4.2
 [1.4.1]: https://github.com/batustun/filament-media-library/compare/v1.4.0...v1.4.1
 [1.4.0]: https://github.com/batustun/filament-media-library/compare/v1.3.0...v1.4.0
 [1.3.0]: https://github.com/batustun/filament-media-library/compare/v1.2.0...v1.3.0

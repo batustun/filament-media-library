@@ -212,14 +212,16 @@ class MediaPicker extends Component implements HasActions, HasSchemas
             return;
         }
 
-        // performUpload reports exactly which records the upload resolved to,
-        // including any it reused rather than duplicated, so the field is
-        // always filled with the right ones — no "latest row" guesswork.
+        // Select what was just uploaded, but do NOT confirm: confirming closes
+        // the modal, so the file the editor just added would flash past without
+        // ever being seen in the grid — which reads as "the upload did nothing".
+        // They press the select button when they are ready.
         $this->selected = $this->multiple
             ? $result['ids']
             : [$result['ids'][0]];
 
-        $this->confirmSelection();
+        $this->forgetFolderCaches();
+        $this->resetPage();
     }
 
     public function moveSelectionTo(?string $directory): void
