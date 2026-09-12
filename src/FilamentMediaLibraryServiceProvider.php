@@ -19,6 +19,7 @@ use Batustun\FilamentMediaLibrary\Providers\MediaProviderRegistry;
 use Batustun\FilamentMediaLibrary\Services\ImageConversionService;
 use Batustun\FilamentMediaLibrary\Services\MediaIndexer;
 use Batustun\FilamentMediaLibrary\Services\MediaService;
+use Batustun\FilamentMediaLibrary\Services\MediaWriter;
 use Batustun\FilamentMediaLibrary\Support\MediaLibraryConfig;
 use Filament\Support\Assets\Css;
 use Filament\Support\Assets\Js;
@@ -52,6 +53,7 @@ class FilamentMediaLibraryServiceProvider extends PackageServiceProvider
 
     public function packageRegistered(): void
     {
+        $this->app->singleton(MediaWriter::class);
         $this->app->singleton(MediaService::class);
         $this->app->singleton(MediaIndexer::class);
         $this->app->singleton(ImageConversionService::class);

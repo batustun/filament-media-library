@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.1.3] - 2026-09-12
+
+### Changed
+- `MediaService` no longer carries path hygiene, file inspection and disk-write
+  policy alongside its orchestration. Those move to `MediaPath`,
+  `FileInspector` and a `MediaWriter` collaborator, which is also where the two
+  storage rules now live in one place: an ACL is sent only when configured, and
+  an SVG is stored rewritten rather than copied. No public API changed — the
+  service still exposes `normalizeDirectory()`, `hashFor()` and `readExif()`.
+
 ## [1.1.2] - 2026-09-12
 
 ### Fixed
@@ -145,7 +155,8 @@ First public release.
 - English, Turkish, German, French, Spanish, Italian, Dutch, Brazilian
   Portuguese, Russian and Arabic. RTL works without extra rules.
 
-[Unreleased]: https://github.com/batustun/filament-media-library/compare/v1.1.2...HEAD
+[Unreleased]: https://github.com/batustun/filament-media-library/compare/v1.1.3...HEAD
+[1.1.3]: https://github.com/batustun/filament-media-library/compare/v1.1.2...v1.1.3
 [1.1.2]: https://github.com/batustun/filament-media-library/compare/v1.1.1...v1.1.2
 [1.1.1]: https://github.com/batustun/filament-media-library/compare/v1.1.0...v1.1.1
 [1.1.0]: https://github.com/batustun/filament-media-library/compare/v1.0.0...v1.1.0

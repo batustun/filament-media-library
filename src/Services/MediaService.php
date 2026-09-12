@@ -8,17 +8,16 @@ use Batustun\FilamentMediaLibrary\Enums\MediaKind;
 use Batustun\FilamentMediaLibrary\Jobs\GenerateImageConversions;
 use Batustun\FilamentMediaLibrary\Models\Media;
 use Batustun\FilamentMediaLibrary\Providers\Contracts\MediaProvider;
+use Batustun\FilamentMediaLibrary\Support\FileInspector;
 use Batustun\FilamentMediaLibrary\Support\MediaLibraryConfig;
+use Batustun\FilamentMediaLibrary\Support\MediaPath;
 use Batustun\FilamentMediaLibrary\Support\MimeKindResolver;
-use Batustun\FilamentMediaLibrary\Support\SvgSanitizer;
 use Batustun\FilamentMediaLibrary\Support\UploadGuard;
 use Illuminate\Http\File;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
-use Illuminate\Support\Str;
-use Illuminate\Validation\ValidationException;
 use RuntimeException;
 use Throwable;
 
@@ -29,6 +28,8 @@ use Throwable;
  */
 class MediaService
 {
+    public function __construct(private readonly MediaWriter $writer) {}
+
     public function defaultDisk(): string
     {
         return MediaLibraryConfig::defaultDisk();
@@ -94,38 +95,16 @@ class MediaService
             : strtolower((string) pathinfo($originalName, PATHINFO_EXTENSION));
 
         if ($extension === '') {
-            $extension = $this->guessExtensionFromMime($mimeType);
+            $extension = MediaPath::guessExtensionFromMime($mimeType);
         }
 
-        $filename ??= $this->buildFilename($originalName, $extension);
+        $filename ??= MediaPath::buildFilename($originalName, $extension);
 
         UploadGuard::assertAcceptable($file);
 
-        $options = [];
-        if ($visibility = MediaLibraryConfig::visibility()) {
-            // Only sent when explicitly configured: S3 buckets with ACLs
-            // disabled and adapters such as BunnyCDN/FTP reject ACL calls.
-            $options['visibility'] = $visibility;
-        }
+        $path = $this->writer->write($disk, $directory, $filename, $file, $mimeType);
 
-        $path = ltrim(($directory === '' ? '' : $directory.'/').$filename, '/');
-
-        if ($this->shouldSanitizeSvg($mimeType, $filename)) {
-            // SVG is the one format that is stored rewritten rather than
-            // copied: it is executable markup, so what lands on the disk must
-            // be the sanitised document, never the original bytes.
-            $this->writeSanitizedSvg($disk, $path, $file, $options);
-        } else {
-            $stored = Storage::disk($disk)->putFileAs($directory, $file, $filename, $options);
-
-            if ($stored === false) {
-                throw new RuntimeException("Failed to write [{$filename}] to disk [{$disk}].");
-            }
-
-            $path = ltrim((string) $stored, '/');
-        }
-
-        [$width, $height] = $this->readImageDimensions($file, $mimeType);
+        [$width, $height] = FileInspector::readImageDimensions($file, $mimeType);
 
         $media = Media::create([
             'disk' => $disk,
@@ -332,17 +311,7 @@ class MediaService
      */
     public function hashFor(UploadedFile|File $file): ?string
     {
-        if (! MediaLibraryConfig::hashUploads()) {
-            return null;
-        }
-
-        $realPath = $file->getRealPath();
-
-        if (! is_string($realPath) || ! is_readable($realPath)) {
-            return null;
-        }
-
-        return hash_file('sha256', $realPath) ?: null;
+        return FileInspector::hashFor($file);
     }
 
     /**
@@ -374,36 +343,10 @@ class MediaService
     {
         UploadGuard::assertAcceptable($file);
 
-        $options = [];
-
-        if ($visibility = MediaLibraryConfig::visibility()) {
-            $options['visibility'] = $visibility;
-        }
-
         $mimeType = $file->getMimeType() ?: $media->mime_type;
 
-        if ($this->shouldSanitizeSvg($mimeType, (string) $media->name)) {
-            $this->writeSanitizedSvg($media->disk, $media->path, $file, $options);
-        } else {
-            $stream = fopen((string) $file->getRealPath(), 'rb');
-
-            if ($stream === false) {
-                throw new RuntimeException('Unable to read the replacement file.');
-            }
-
-            try {
-                $written = Storage::disk($media->disk)->put($media->path, $stream, $options);
-            } finally {
-                if (is_resource($stream)) {
-                    fclose($stream);
-                }
-            }
-
-            if ($written === false) {
-                throw new RuntimeException("Failed to replace [{$media->path}] on disk [{$media->disk}].");
-            }
-        }
-        [$width, $height] = $this->readImageDimensions($file, $mimeType);
+        $this->writer->overwrite($media->disk, $media->path, $file, $mimeType, (string) $media->name);
+        [$width, $height] = FileInspector::readImageDimensions($file, $mimeType);
 
         $media->forceFill([
             'mime_type' => $mimeType,
@@ -434,33 +377,13 @@ class MediaService
             throw new RuntimeException('Provider-backed items cannot be duplicated.');
         }
 
-        $disk = Storage::disk($media->disk);
         $extension = (string) pathinfo((string) $media->name, PATHINFO_EXTENSION);
         $base = (string) pathinfo((string) $media->name, PATHINFO_FILENAME);
 
-        $filename = $this->buildFilename($base.'-copy', $extension);
-        $directory = (string) ($media->directory ?? '');
-        $path = ltrim(($directory === '' ? '' : $directory.'/').$filename, '/');
+        $filename = MediaPath::buildFilename($base.'-copy', $extension);
+        $path = $this->writer->join((string) ($media->directory ?? ''), $filename);
 
-        $stream = $disk->readStream($media->path);
-
-        if (! is_resource($stream)) {
-            throw new RuntimeException("Unable to read [{$media->path}] for duplication.");
-        }
-
-        try {
-            $options = [];
-
-            if ($visibility = MediaLibraryConfig::visibility()) {
-                $options['visibility'] = $visibility;
-            }
-
-            if ($disk->put($path, $stream, $options) === false) {
-                throw new RuntimeException("Failed to write the duplicate to [{$path}].");
-            }
-        } finally {
-            fclose($stream);
-        }
+        $this->writer->copy($media->disk, $media->path, $path);
 
         $copy = $media->replicate(['id', 'created_at', 'updated_at']);
 
@@ -599,14 +522,7 @@ class MediaService
      */
     public function normalizeDirectory(?string $directory): string
     {
-        $directory = $this->expandDateTokens(str_replace('\\', '/', (string) $directory));
-
-        $segments = array_filter(
-            explode('/', $directory),
-            static fn (string $segment): bool => $segment !== '' && $segment !== '.' && $segment !== '..',
-        );
-
-        return implode('/', $segments);
+        return MediaPath::normalizeDirectory($directory);
     }
 
     /**
@@ -632,24 +548,6 @@ class MediaService
         GenerateImageConversions::dispatch($media)->onQueue($queue);
     }
 
-    /** Supported tokens: {Y} {y} {m} {d} {H} — all zero-padded but {y}. */
-    private function expandDateTokens(string $directory): string
-    {
-        if (! str_contains($directory, '{')) {
-            return $directory;
-        }
-
-        $now = now();
-
-        return strtr($directory, [
-            '{Y}' => $now->format('Y'),
-            '{y}' => $now->format('y'),
-            '{m}' => $now->format('m'),
-            '{d}' => $now->format('d'),
-            '{H}' => $now->format('H'),
-        ]);
-    }
-
     /**
      * EXIF for JPEG/TIFF, when the extension is available. Camera and capture
      * date are what editors actually look for; the rest is noise.
@@ -658,112 +556,6 @@ class MediaService
      */
     public function readExif(UploadedFile|File $file, ?string $mimeType): array
     {
-        if (! function_exists('exif_read_data')) {
-            return [];
-        }
-
-        if (! in_array(strtolower((string) $mimeType), ['image/jpeg', 'image/tiff'], true)) {
-            return [];
-        }
-
-        $realPath = $file->getRealPath();
-
-        if (! is_string($realPath) || ! is_readable($realPath)) {
-            return [];
-        }
-
-        $exif = @exif_read_data($realPath);
-
-        if (! is_array($exif)) {
-            return [];
-        }
-
-        return array_filter([
-            'camera' => trim(($exif['Make'] ?? '').' '.($exif['Model'] ?? '')) ?: null,
-            'taken_at' => $exif['DateTimeOriginal'] ?? null,
-            'orientation' => isset($exif['Orientation']) ? (int) $exif['Orientation'] : null,
-            'iso' => isset($exif['ISOSpeedRatings']) ? (int) $exif['ISOSpeedRatings'] : null,
-            'exposure' => $exif['ExposureTime'] ?? null,
-            'aperture' => $exif['FNumber'] ?? null,
-        ], static fn (mixed $value): bool => $value !== null && $value !== '');
-    }
-
-    private function shouldSanitizeSvg(?string $mimeType, string $filename): bool
-    {
-        return MediaLibraryConfig::sanitizesSvg() && SvgSanitizer::isSvg($mimeType, $filename);
-    }
-
-    /**
-     * @param  array<string, mixed>  $options
-     *
-     * @throws ValidationException when the document cannot be parsed as SVG
-     */
-    private function writeSanitizedSvg(string $disk, string $path, UploadedFile|File $file, array $options): void
-    {
-        $clean = SvgSanitizer::sanitize((string) file_get_contents((string) $file->getRealPath()));
-
-        if ($clean === null) {
-            throw ValidationException::withMessages([
-                'file' => __('filament-media-library::filament-media-library.validation.unsafe_svg'),
-            ]);
-        }
-
-        if (Storage::disk($disk)->put($path, $clean, $options) === false) {
-            throw new RuntimeException("Failed to write [{$path}] to disk [{$disk}].");
-        }
-    }
-
-    private function buildFilename(string $original, string $extension): string
-    {
-        $base = Str::slug((string) pathinfo($original, PATHINFO_FILENAME)) ?: 'file';
-
-        return $base.'-'.now()->format('YmdHis').'-'.Str::random(6)
-            .($extension !== '' ? '.'.$extension : '');
-    }
-
-    private function guessExtensionFromMime(?string $mime): string
-    {
-        return match (strtolower((string) $mime)) {
-            'image/jpeg' => 'jpg',
-            'image/png' => 'png',
-            'image/gif' => 'gif',
-            'image/webp' => 'webp',
-            'image/avif' => 'avif',
-            'image/svg+xml' => 'svg',
-            'application/pdf' => 'pdf',
-            'video/mp4' => 'mp4',
-            'audio/mpeg' => 'mp3',
-            default => '',
-        };
-    }
-
-    /** @return array{0: int|null, 1: int|null} */
-    private function readImageDimensions(UploadedFile|File $file, ?string $mimeType): array
-    {
-        if (! MediaLibraryConfig::readImageDimensions()) {
-            return [null, null];
-        }
-
-        if (! str_starts_with((string) $mimeType, 'image/')) {
-            return [null, null];
-        }
-
-        $realPath = $file->getRealPath();
-
-        if (! is_string($realPath) || ! is_readable($realPath)) {
-            return [null, null];
-        }
-
-        try {
-            $size = @getimagesize($realPath);
-
-            if (is_array($size)) {
-                return [(int) $size[0], (int) $size[1]];
-            }
-        } catch (Throwable) {
-            // SVG and some formats are not supported by getimagesize().
-        }
-
-        return [null, null];
+        return FileInspector::readExif($file, $mimeType);
     }
 }
