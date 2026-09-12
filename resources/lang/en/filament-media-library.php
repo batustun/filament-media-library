@@ -114,6 +114,7 @@ return [
     ],
 
     'messages' => [
+        'reused_hint' => 'It is selected below — no second copy was stored.',
         'preview_truncated' => 'Showing the first part of this file only',
         'duplicated' => 'Duplicated',
         'tags_updated' => 'Tags updated',

@@ -114,6 +114,7 @@ return [
     ],
 
     'messages' => [
+        'reused_hint' => 'Het is hieronder geselecteerd — er is geen tweede kopie opgeslagen.',
         'preview_truncated' => 'Alleen het eerste deel van dit bestand wordt getoond',
         'duplicated' => 'Gedupliceerd',
         'tags_updated' => 'Tags bijgewerkt',

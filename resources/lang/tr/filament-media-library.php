@@ -114,6 +114,7 @@ return [
     ],
 
     'messages' => [
+        'reused_hint' => 'Aşağıda seçili — ikinci bir kopya oluşturulmadı.',
         'preview_truncated' => 'Bu dosyanın yalnızca ilk kısmı gösteriliyor',
         'duplicated' => 'Çoğaltıldı',
         'tags_updated' => 'Etiketler güncellendi',

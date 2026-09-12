@@ -1,13 +1,37 @@
 @php
     $t = 'filament-media-library::filament-media-library';
     $isFiltered = $this->hasFilters();
+    // Folders are only meaningful while browsing; a filtered search is a search
+    // across everything, not a place you are standing in.
+    $childFolders = $isFiltered ? [] : $this->childFolders();
 @endphp
 
 <div
     wire:loading.class="fml-loading"
     wire:target="search,kindFilter,sort,disk,directory,dateFrom,dateTo,gotoPage,previousPage,nextPage"
 >
-    @if ($paginator->total() === 0)
+    @if ($childFolders !== [])
+        <div class="fml-grid fml-grid--folders">
+            @foreach ($childFolders as $folder)
+                <button
+                    type="button"
+                    class="fml-folder-card"
+                    wire:click="selectFolder(@js($folder['path']))"
+                    title="{{ $folder['path'] }}"
+                >
+                    <x-filament::icon icon="heroicon-o-folder" class="fml-icon-lg" />
+                    <span class="fml-folder-card__name">{{ $folder['name'] }}</span>
+                    <span class="fml-folder-card__count">
+                        {{ trans_choice($t.'.messages.items_count', $folder['count'], ['count' => $folder['count']]) }}
+                    </span>
+                </button>
+            @endforeach
+        </div>
+    @endif
+
+    @if ($paginator->total() === 0 && $childFolders !== [])
+        {{-- Folders above, no files at this level: saying "empty" would be wrong. --}}
+    @elseif ($paginator->total() === 0)
         <x-filament::empty-state
             icon="heroicon-o-photo"
             icon-color="gray"

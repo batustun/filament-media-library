@@ -177,6 +177,16 @@
         @endforeach
 
         <x-filament::icon-button
+            icon="heroicon-m-arrow-path"
+            color="gray"
+            size="sm"
+            wire:click="refreshLibrary"
+            wire:loading.attr="disabled"
+            wire:target="refreshLibrary"
+            :label="__($t.'.actions.refresh')"
+        />
+
+        <x-filament::icon-button
             :icon="$showExtensions ? 'heroicon-m-eye' : 'heroicon-m-eye-slash'"
             color="gray"
             size="sm"

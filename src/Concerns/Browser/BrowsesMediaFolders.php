@@ -192,9 +192,84 @@ trait BrowsesMediaFolders
         return $folders;
     }
 
+    /**
+     * The folders directly inside the one being browsed, with a file count.
+     *
+     * A grid that only ever shows files makes a parent folder look empty when
+     * everything lives a level deeper — which is how a file manager would never
+     * behave. These render as cards ahead of the files.
+     *
+     * @return array<int, array{name: string, path: string, count: int}>
+     */
+    public function childFolders(): array
+    {
+        $current = trim($this->directory, '/');
+        $prefix = $current === '' ? '' : $current.'/';
+        $depth = $current === '' ? 0 : substr_count($current, '/') + 1;
+
+        $children = $this->folderTree()
+            ->filter(fn (array $folder): bool => $folder['depth'] === $depth
+                && ($prefix === '' || str_starts_with($folder['path'], $prefix)))
+            ->values();
+
+        if ($children->isEmpty()) {
+            return [];
+        }
+
+        $counts = $this->folderCounts($children->pluck('path')->all());
+
+        return $children
+            ->map(fn (array $folder): array => [
+                'name' => $folder['name'],
+                'path' => $folder['path'],
+                'count' => $counts[$folder['path']] ?? 0,
+            ])
+            ->all();
+    }
+
+    /**
+     * How many files sit under each of these folders, counting nested ones —
+     * a folder whose contents are all one level down is not empty.
+     *
+     * @param  array<int, string>  $paths
+     * @return array<string, int>
+     */
+    protected function folderCounts(array $paths): array
+    {
+        $counts = array_fill_keys($paths, 0);
+
+        Media::query()
+            ->onDisk($this->disk)
+            ->toBase()
+            ->whereNotNull('directory')
+            ->where('directory', '!=', '')
+            ->select('directory')
+            ->selectRaw('count(*) as aggregate')
+            ->groupBy('directory')
+            ->get()
+            ->each(function ($row) use (&$counts): void {
+                $directory = trim((string) $row->directory, '/');
+
+                foreach ($counts as $path => $_) {
+                    if ($directory === $path || str_starts_with($directory, $path.'/')) {
+                        $counts[$path] += (int) $row->aggregate;
+                    }
+                }
+            });
+
+        return $counts;
+    }
+
     public function selectFolder(string $path): void
     {
         $this->directory = app(MediaService::class)->normalizeDirectory($path);
+        $this->resetPage();
+    }
+
+    /** Re-read the disk-derived caches and the current page. */
+    public function refreshLibrary(): void
+    {
+        $this->forgetFolderCaches();
         $this->resetPage();
     }
 

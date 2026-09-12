@@ -212,3 +212,47 @@ it('does not duplicate a folder that already has files in it', function () {
 
     expect($browser->folderTree()->pluck('path')->all())->toBe(['mevcut']);
 });
+
+it('lists the folders directly inside the one being browsed', function () {
+    row(['directory' => 'assistsocial/uploads/posts/photos', 'name' => 'deep.png']);
+    row(['directory' => 'advertisements', 'name' => 'flat.png']);
+
+    $browser = browser();
+    $browser->disk = 'public';
+
+    expect(collect($browser->childFolders())->pluck('name')->all())
+        ->toEqualCanonicalizing(['assistsocial', 'advertisements']);
+
+    // A parent whose files all live deeper still reports them, so it never
+    // looks empty.
+    $browser->directory = 'assistsocial';
+
+    expect($browser->childFolders())->toBe([
+        ['name' => 'uploads', 'path' => 'assistsocial/uploads', 'count' => 1],
+    ]);
+});
+
+it('shows no folder cards while a filter is narrowing everything', function () {
+    row(['directory' => 'a/b', 'name' => 'x.png']);
+
+    $browser = browser();
+    $browser->disk = 'public';
+
+    expect($browser->childFolders())->not->toBeEmpty();
+
+    // A filtered view is a search across the library, not a place.
+    $browser->search = 'x';
+
+    expect($browser->hasFilters())->toBeTrue();
+});
+
+it('clears the derived caches when the library is refreshed', function () {
+    $browser = browser();
+    $browser->disk = 'public';
+    $browser->folderTree();
+
+    row(['directory' => 'sonradan', 'name' => 'y.png']);
+    $browser->refreshLibrary();
+
+    expect($browser->folderTree()->pluck('path')->all())->toContain('sonradan');
+});

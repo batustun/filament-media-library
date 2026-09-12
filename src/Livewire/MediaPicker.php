@@ -10,6 +10,7 @@ use Batustun\FilamentMediaLibrary\Services\MediaService;
 use Batustun\FilamentMediaLibrary\Support\Authorize;
 use Filament\Actions\Concerns\InteractsWithActions;
 use Filament\Actions\Contracts\HasActions;
+use Filament\Notifications\Notification;
 use Filament\Schemas\Concerns\InteractsWithSchemas;
 use Filament\Schemas\Contracts\HasSchemas;
 use Illuminate\Contracts\View\View;
@@ -208,6 +209,8 @@ class MediaPicker extends Component implements HasActions, HasSchemas
             $this->directory = $originalDirectory;
         }
 
+        $this->announceUpload($result);
+
         if ($result['ids'] === []) {
             return;
         }
@@ -222,6 +225,40 @@ class MediaPicker extends Component implements HasActions, HasSchemas
 
         $this->forgetFolderCaches();
         $this->resetPage();
+    }
+
+    /**
+     * Say what the upload actually did.
+     *
+     * Silence is the worst outcome here: a byte-identical file is reused rather
+     * than stored again, so no new card appears — and without a word, that is
+     * indistinguishable from the upload having failed.
+     *
+     * @param  array{stored: int, reused: int, ids: array<int, string>}  $result
+     */
+    protected function announceUpload(array $result): void
+    {
+        $t = 'filament-media-library::filament-media-library.messages.';
+
+        if ($result['stored'] === 0 && $result['reused'] === 0) {
+            return;
+        }
+
+        $notification = Notification::make()->success();
+
+        if ($result['stored'] > 0) {
+            $notification->title(trans_choice($t.'uploaded', $result['stored'], ['count' => $result['stored']]));
+
+            if ($result['reused'] > 0) {
+                $notification->body(trans_choice($t.'reused', $result['reused'], ['count' => $result['reused']]));
+            }
+        } else {
+            $notification
+                ->title(__($t.'all_reused'))
+                ->body(__($t.'reused_hint'));
+        }
+
+        $notification->send();
     }
 
     public function moveSelectionTo(?string $directory): void

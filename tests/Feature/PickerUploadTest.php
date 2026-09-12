@@ -92,3 +92,20 @@ it('reuses an existing record rather than storing the same bytes twice', functio
     expect(Media::count())->toBe(1)
         ->and($picker->selected)->toBe([Media::sole()->id]);
 });
+
+it('still stores nothing new when the same bytes come back, and keeps it selected', function () {
+    // The picker announces this with a notification — asserted in the consuming
+    // application's suite, where Livewire can be driven. Here we pin the
+    // outcome: one record, and it is the one the field will receive.
+    $picker = picker();
+    $picker->uploads = [UploadedFile::fake()->createWithContent('a.txt', 'same bytes')];
+    $picker->uploadAndApply();
+
+    $first = Media::sole()->id;
+
+    $picker->uploads = [UploadedFile::fake()->createWithContent('b.txt', 'same bytes')];
+    $picker->uploadAndApply();
+
+    expect(Media::count())->toBe(1)
+        ->and($picker->selected)->toBe([$first]);
+});

@@ -7,6 +7,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.5.0] - 2026-09-12
+
+### Added
+- **Folder cards in the grid.** A folder whose files all live a level deeper
+  used to show "no files here" — which no file manager would do. The folders
+  directly inside the one you are browsing now appear as cards, each with a
+  count of everything beneath it.
+- **A refresh button** in the toolbar, for when the library changed elsewhere.
+
+### Fixed
+- **The picker said nothing after an upload.** A byte-identical file is reused
+  rather than stored again, so no new card appears — and in silence that is
+  indistinguishable from a failed upload. It now reports what happened, and
+  says explicitly when an existing copy was used instead.
+
 ## [1.4.4] - 2026-09-12
 
 ### Fixed
@@ -241,7 +256,8 @@ First public release.
 - English, Turkish, German, French, Spanish, Italian, Dutch, Brazilian
   Portuguese, Russian and Arabic. RTL works without extra rules.
 
-[Unreleased]: https://github.com/batustun/filament-media-library/compare/v1.4.4...HEAD
+[Unreleased]: https://github.com/batustun/filament-media-library/compare/v1.5.0...HEAD
+[1.5.0]: https://github.com/batustun/filament-media-library/compare/v1.4.4...v1.5.0
 [1.4.4]: https://github.com/batustun/filament-media-library/compare/v1.4.3...v1.4.4
 [1.4.3]: https://github.com/batustun/filament-media-library/compare/v1.4.2...v1.4.3
 [1.4.2]: https://github.com/batustun/filament-media-library/compare/v1.4.1...v1.4.2

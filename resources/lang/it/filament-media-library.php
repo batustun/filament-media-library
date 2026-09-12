@@ -114,6 +114,7 @@ return [
     ],
 
     'messages' => [
+        'reused_hint' => 'È selezionato qui sotto: non è stata salvata una seconda copia.',
         'preview_truncated' => 'Viene mostrata solo la prima parte di questo file',
         'duplicated' => 'Duplicato',
         'tags_updated' => 'Tag aggiornati',
