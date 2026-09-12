@@ -188,3 +188,27 @@ it('falls back to built-in sorting for an unknown sort key', function () {
 
     expect($browser->items()->pluck('name')->all())->toBe(['a.png', 'b.png']);
 });
+
+it('shows a folder the moment it is created, before anything is in it', function () {
+    $browser = browser();
+    $browser->disk = 'public';
+
+    expect($browser->folderTree())->toBeEmpty();
+
+    // Folders are derived from indexed files, so a new one would otherwise be
+    // invisible until its first upload — which reads as "it did not work".
+    $browser->directory = 'kampanyalar/2026';
+
+    expect($browser->folderTree()->pluck('path')->all())
+        ->toBe(['kampanyalar', 'kampanyalar/2026']);
+});
+
+it('does not duplicate a folder that already has files in it', function () {
+    row(['directory' => 'mevcut', 'name' => 'a.png']);
+
+    $browser = browser();
+    $browser->disk = 'public';
+    $browser->directory = 'mevcut';
+
+    expect($browser->folderTree()->pluck('path')->all())->toBe(['mevcut']);
+});

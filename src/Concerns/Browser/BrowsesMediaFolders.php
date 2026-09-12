@@ -103,7 +103,41 @@ trait BrowsesMediaFolders
             return $expanded->unique('path')->sortBy('path')->values()->all();
         });
 
-        return collect($tree);
+        return $this->withPendingFolder(collect($tree));
+    }
+
+    /**
+     * Show the folder the user is standing in even when nothing has landed in
+     * it yet.
+     *
+     * Folders are derived from the directories of indexed files, so a brand new
+     * one is invisible until its first upload. Creating a folder and seeing the
+     * sidebar unchanged reads as "it did not work" — the opposite of what
+     * actually happened.
+     *
+     * @param  Collection<int, array{name: string, path: string, depth: int}>  $folders
+     * @return Collection<int, array{name: string, path: string, depth: int}>
+     */
+    protected function withPendingFolder(Collection $folders): Collection
+    {
+        $current = trim($this->directory, '/');
+
+        if ($current === '' || $folders->contains('path', $current)) {
+            return $folders;
+        }
+
+        // Ancestors too, so a nested new folder stays reachable.
+        $accumulated = '';
+
+        foreach (explode('/', $current) as $depth => $segment) {
+            $accumulated = $accumulated === '' ? $segment : $accumulated.'/'.$segment;
+
+            if (! $folders->contains('path', $accumulated)) {
+                $folders->push(['name' => $segment, 'path' => $accumulated, 'depth' => $depth]);
+            }
+        }
+
+        return $folders->sortBy('path')->values();
     }
 
     /**
