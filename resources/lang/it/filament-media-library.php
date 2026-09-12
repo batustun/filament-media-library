@@ -161,6 +161,7 @@ return [
     ],
 
     'doctor' => [
+        'prune_blocked' => 'Pulizia rifiutata: il disco non è raggiungibile, quindi ogni elemento sembra mancante e la pulizia cancellerebbe l’intero indice.',
         'unlistable' => 'Non è stato possibile elencare il disco [:disk], quindi i file al suo interno non sono stati controllati. Motivo: :reason',
         'missing' => 'Indicizzato ma assente dall’archiviazione',
         'unindexed' => 'Presente nell’archiviazione ma non indicizzato',

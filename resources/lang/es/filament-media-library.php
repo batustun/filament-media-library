@@ -161,6 +161,7 @@ return [
     ],
 
     'doctor' => [
+        'prune_blocked' => 'Limpieza rechazada: no se pudo acceder al disco, por lo que todos los elementos parecen faltar y la limpieza borraría todo el índice.',
         'unlistable' => 'No se pudo listar el disco [:disk], por lo que no se comprobaron sus archivos. Motivo: :reason',
         'missing' => 'Indexado pero ausente del almacenamiento',
         'unindexed' => 'En el almacenamiento pero sin indexar',

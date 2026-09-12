@@ -161,6 +161,7 @@ return [
     ],
 
     'doctor' => [
+        'prune_blocked' => 'Temizleme reddedildi: diske ulaşılamadı, bu yüzden her kayıt eksik görünüyor ve temizleme tüm indeksi silerdi.',
         'unlistable' => '[:disk] diski listelenemedi, bu yüzden üzerindeki dosyalar kontrol edilemedi. Sebep: :reason',
         'missing' => 'Kayıtlı ama depolamada yok',
         'unindexed' => 'Depolamada var ama kayıtlı değil',

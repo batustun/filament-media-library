@@ -161,6 +161,7 @@ return [
     ],
 
     'doctor' => [
+        'prune_blocked' => 'Refusing to prune: the disk could not be reached, so every item looks missing and pruning would delete the whole index.',
         'unlistable' => 'The disk [:disk] could not be listed, so files on it could not be checked. Reason: :reason',
         'missing' => 'Indexed but missing from storage',
         'unindexed' => 'On storage but not indexed',

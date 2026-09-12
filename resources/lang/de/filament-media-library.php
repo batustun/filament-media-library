@@ -161,6 +161,7 @@ return [
     ],
 
     'doctor' => [
+        'prune_blocked' => 'Bereinigung abgelehnt: Die Festplatte war nicht erreichbar, daher wirkt jeder Eintrag fehlend und die Bereinigung würde den gesamten Index löschen.',
         'unlistable' => 'Die Festplatte [:disk] konnte nicht aufgelistet werden, daher wurden die Dateien darauf nicht geprüft. Grund: :reason',
         'missing' => 'Indiziert, aber im Speicher nicht vorhanden',
         'unindexed' => 'Im Speicher vorhanden, aber nicht indiziert',

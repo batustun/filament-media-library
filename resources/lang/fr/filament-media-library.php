@@ -161,6 +161,7 @@ return [
     ],
 
     'doctor' => [
+        'prune_blocked' => 'Purge refusée : le disque était injoignable, chaque élément semble donc manquant et la purge supprimerait tout l’index.',
         'unlistable' => 'Le disque [:disk] n’a pas pu être listé, les fichiers qui s’y trouvent n’ont donc pas été vérifiés. Raison : :reason',
         'missing' => 'Indexé mais absent du stockage',
         'unindexed' => 'Présent sur le stockage mais non indexé',

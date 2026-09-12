@@ -41,14 +41,22 @@ class DoctorCommand extends Command
 
         $this->components->info("Inspecting disk [{$disk}]");
 
-        $missing = $indexer->findOrphans($disk);
+        // Establish first whether the disk answers at all. When it does not,
+        // every existence check would fail and report the entire library as
+        // missing — and --prune would then delete the whole index.
         $unindexed = $this->findUnindexed($disk);
+        $reachable = $unindexed !== null;
+
+        $missing = $reachable ? $indexer->findOrphans($disk) : [];
         $duplicates = $this->findDuplicates($disk);
 
         $this->table(
             ['Check', 'Count'],
             [
-                [__('filament-media-library::filament-media-library.doctor.missing'), count($missing)],
+                [
+                    __('filament-media-library::filament-media-library.doctor.missing'),
+                    $reachable ? count($missing) : '—',
+                ],
                 [
                     __('filament-media-library::filament-media-library.doctor.unindexed'),
                     $unindexed === null ? '—' : count($unindexed),
@@ -57,7 +65,7 @@ class DoctorCommand extends Command
             ],
         );
 
-        if ($unindexed === null) {
+        if (! $reachable) {
             // The other two checks read the database and still stand, so the
             // report is degraded rather than abandoned.
             $this->components->warn(
@@ -83,6 +91,14 @@ class DoctorCommand extends Command
 
         $repaired = false;
 
+        if ($this->option('prune') && ! $reachable) {
+            // Refusing is the whole point: with an unreachable disk every row
+            // looks orphaned, and pruning would erase the entire index.
+            $this->components->error(__('filament-media-library::filament-media-library.doctor.prune_blocked'));
+
+            return self::FAILURE;
+        }
+
         if ($missing !== [] && $this->option('prune')) {
             $repaired = true;
             $this->prune($missing, $service);
@@ -93,7 +109,7 @@ class DoctorCommand extends Command
             $this->index($disk, $unindexed, $service);
         }
 
-        if (! $repaired && $missing === [] && $unindexed === [] && $duplicates === []) {
+        if (! $repaired && $reachable && $missing === [] && $unindexed === [] && $duplicates === []) {
             $this->components->info(__('filament-media-library::filament-media-library.doctor.healthy'));
         }
 

@@ -74,3 +74,21 @@ it('leaves a listable disk untouched', function () {
     expect($stats['indexed'])->toBe(1)
         ->and(Media::count())->toBe(1);
 });
+
+it('does not report the whole library as missing when the disk is unreachable', function () {
+    Media::create(['disk' => 'broken', 'path' => 'a.png', 'name' => 'a.png', 'kind' => 'image', 'size' => 1]);
+
+    $this->artisan('media-library:doctor', ['--disk' => 'broken'])
+        ->expectsOutputToContain('—')
+        ->assertSuccessful();
+});
+
+it('refuses to prune when the disk is unreachable', function () {
+    // Every row would look orphaned, so pruning would erase the entire index.
+    Media::create(['disk' => 'broken', 'path' => 'a.png', 'name' => 'a.png', 'kind' => 'image', 'size' => 1]);
+
+    $this->artisan('media-library:doctor', ['--disk' => 'broken', '--prune' => true, '--force' => true])
+        ->assertFailed();
+
+    expect(Media::count())->toBe(1);
+});
