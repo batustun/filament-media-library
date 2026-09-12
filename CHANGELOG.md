@@ -7,6 +7,29 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.2.0] - 2026-09-12
+
+### Added
+- **The library attaches itself to fields you never changed.** Every Filament
+  `FileUpload`, in every panel, gains a "Choose from Library" button on install.
+  Purely additive: the button is appended to any hint actions the field already
+  has, and the field keeps storing a disk-relative path, which is what a
+  `FileUpload` stores natively. Controlled by `auto_attach.file_upload`.
+- `auto_attach.index_uploads` (off by default) additionally routes those fields'
+  uploads through the library, so a file uploaded anywhere is indexed and
+  reusable. Off by default because it changes the generated filename.
+- `LibraryPickerAction`, so the dedicated `MediaInput` and the automatic
+  attachment share one definition of the picker rather than two.
+
+### Fixed
+- The README showed `RichEditor::make()->fileAttachmentProvider(...)`, which
+  does not exist. In Filament v5 the provider belongs to the model's rich
+  content attribute; the README now shows the real API.
+
+### Notes
+- RichEditor is deliberately not auto-attached: its provider lives on
+  `RichContentAttribute`, which offers no global hook to attach to.
+
 ## [1.1.3] - 2026-09-12
 
 ### Changed
@@ -155,7 +178,8 @@ First public release.
 - English, Turkish, German, French, Spanish, Italian, Dutch, Brazilian
   Portuguese, Russian and Arabic. RTL works without extra rules.
 
-[Unreleased]: https://github.com/batustun/filament-media-library/compare/v1.1.3...HEAD
+[Unreleased]: https://github.com/batustun/filament-media-library/compare/v1.2.0...HEAD
+[1.2.0]: https://github.com/batustun/filament-media-library/compare/v1.1.3...v1.2.0
 [1.1.3]: https://github.com/batustun/filament-media-library/compare/v1.1.2...v1.1.3
 [1.1.2]: https://github.com/batustun/filament-media-library/compare/v1.1.1...v1.1.2
 [1.1.1]: https://github.com/batustun/filament-media-library/compare/v1.1.0...v1.1.1

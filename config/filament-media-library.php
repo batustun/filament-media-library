@@ -98,6 +98,38 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Automatic Attachment
+    |--------------------------------------------------------------------------
+    |
+    | Whether the library attaches itself to fields you did not change.
+    |
+    | `file_upload` adds a "Choose from Library" button to EVERY Filament
+    | FileUpload in every panel, so existing forms gain the picker without
+    | being rewritten. It is purely additive: the button is appended to any
+    | hint actions the field already has, and what the field stores does not
+    | change shape — the picker writes a disk-relative path, exactly what a
+    | FileUpload stores natively.
+    |
+    | `index_uploads` additionally routes those fields' uploads through the
+    | library, so files uploaded anywhere are indexed and reusable. This is off
+    | by default because it changes the generated filename, and an application
+    | may already depend on the current one.
+    |
+    | RichEditor is deliberately absent: in Filament v5 its attachment provider
+    | belongs to the MODEL's rich content attribute, which has no global hook to
+    | attach to. Wire it once per model — the README shows how.
+    |
+    | Anything you wrote explicitly still wins: a MediaInput keeps its own
+    | picker, and hint actions you define are appended to, never replaced.
+    |
+    */
+    'auto_attach' => [
+        'file_upload' => true,
+        'index_uploads' => false,
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
     | Upload Security
     |--------------------------------------------------------------------------
     |

@@ -9,7 +9,6 @@ use Batustun\FilamentMediaLibrary\Services\MediaService;
 use Batustun\FilamentMediaLibrary\Support\MediaLibraryConfig;
 use Filament\Actions\Action;
 use Filament\Forms\Components\FileUpload;
-use Illuminate\Support\Facades\View;
 use Livewire\Features\SupportFileUploads\TemporaryUploadedFile;
 
 /**
@@ -66,28 +65,7 @@ class MediaInput extends FileUpload
         // deletion is an explicit action on the library page.
         $this->deleteUploadedFileUsing(fn (): null => null);
 
-        $this->hintAction(
-            Action::make('pickFromMediaLibrary')
-                ->label(__('filament-media-library::filament-media-library.actions.select_from_library'))
-                ->icon('heroicon-o-photo')
-                ->color('gray')
-                ->modalHeading(__('filament-media-library::filament-media-library.navigation.label'))
-                ->modalWidth('7xl')
-                ->modalSubmitAction(false)
-                ->modalCancelActionLabel(__('filament-media-library::filament-media-library.actions.close'))
-                ->modalContent(fn () => View::make('filament-media-library::components.picker-modal', [
-                    'multiple' => $this->isMultiple(),
-                    'disk' => $this->getDiskName(),
-                    // Always open at "All files" so the whole library is
-                    // visible; uploadDirectory keeps new uploads landing in
-                    // the directory this field was configured with.
-                    'directory' => '',
-                    'uploadDirectory' => $this->getDirectory() ?: '',
-                    'kinds' => $this->acceptedKinds,
-                    'statePath' => $this->getStatePath(),
-                    'returns' => $this->returns,
-                ])),
-        );
+        $this->hintAction(fn (): Action => LibraryPickerAction::for($this, $this->acceptedKinds, $this->returns));
     }
 
     public function returns(string $type): static

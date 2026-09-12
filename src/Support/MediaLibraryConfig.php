@@ -353,6 +353,16 @@ final class MediaLibraryConfig
         return is_string($queue) && $queue !== '' ? $queue : null;
     }
 
+    public static function autoAttachesToFileUpload(): bool
+    {
+        return (bool) self::get('auto_attach.file_upload', true);
+    }
+
+    public static function autoIndexesUploads(): bool
+    {
+        return (bool) self::get('auto_attach.index_uploads', false);
+    }
+
     public static function sanitizesSvg(): bool
     {
         return (bool) self::get('security.sanitize_svg', true);

@@ -45,4 +45,4 @@ parameters:
             message: '#expects view-string, string given#'
             paths:
                 - src/Livewire/MediaPicker.php
-                - src/Filament/Components/MediaInput.php
+                - src/Filament/Components/LibraryPickerAction.php

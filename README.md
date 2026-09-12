@@ -25,6 +25,8 @@ upload, organise, search and reuse every asset in your panel.
 - **Tags, custom metadata fields, in-browser image editing and chunked uploads.**
 - **Extensible**: add your own filters, sorters, item and bulk actions, or swap
   the page class entirely.
+- **Attaches itself.** Every existing `FileUpload` in every panel gains a
+  "Choose from Library" button on install — no form to rewrite.
 - **10 languages** included.
 
 ---
@@ -383,6 +385,31 @@ belong to this library.
 
 ## Usage
 
+### It attaches itself
+
+On install, every Filament `FileUpload` in every panel gains a **"Choose from
+Library"** button, so forms you already wrote can pick from the library without
+being touched.
+
+This is purely additive: the button is appended to whatever hint actions the
+field already has, and what the field stores keeps its usual shape — the picker
+writes a disk-relative path, exactly what a `FileUpload` stores natively.
+
+```php
+'auto_attach' => [
+    'file_upload' => true,    // the picker on every FileUpload
+    'index_uploads' => false, // also index what those fields upload
+],
+```
+
+Turn `index_uploads` on and files uploaded through *any* field are indexed and
+become reusable. It is off by default because it changes the generated
+filename, and an application may already depend on the current one.
+
+> RichEditor is not auto-attached: in Filament v5 its attachment provider
+> belongs to the model's rich content attribute, which has no global hook. Wire
+> it once per model — see below.
+
 ### The form field
 
 ```php
@@ -412,14 +439,31 @@ right rendition.
 
 ### RichEditor attachments
 
+In Filament v5 the attachment provider belongs to the model's rich content
+attribute, not to the field:
+
 ```php
 use Batustun\FilamentMediaLibrary\Filament\RichEditor\MediaLibraryFileAttachmentProvider;
+use Filament\Forms\Components\RichEditor\Models\Concerns\InteractsWithRichContent;
+use Filament\Forms\Components\RichEditor\Models\Contracts\HasRichContent;
 
-RichEditor::make('body')
-    ->fileAttachmentProvider(
-        MediaLibraryFileAttachmentProvider::make()->directory('posts/inline')
-    );
+class Post extends Model implements HasRichContent
+{
+    use InteractsWithRichContent;
+
+    protected function setUpRichContent(): void
+    {
+        $this->registerRichContent('body')
+            ->fileAttachmentProvider(
+                MediaLibraryFileAttachmentProvider::make()->directory('posts/inline')
+            );
+    }
+}
 ```
+
+Images dropped into the editor are stored in the library and referenced by id,
+so the URL is resolved live — moving to a new CDN never breaks published
+content.
 
 ### Attaching media to your own models
 

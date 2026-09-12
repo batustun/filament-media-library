@@ -8,6 +8,8 @@ use Batustun\FilamentMediaLibrary\Console\Commands\CleanChunksCommand;
 use Batustun\FilamentMediaLibrary\Console\Commands\DoctorCommand;
 use Batustun\FilamentMediaLibrary\Console\Commands\ImportSpatieMediaCommand;
 use Batustun\FilamentMediaLibrary\Console\Commands\SyncMediaCommand;
+use Batustun\FilamentMediaLibrary\Filament\Components\LibraryPickerAction;
+use Batustun\FilamentMediaLibrary\Filament\Components\MediaInput;
 use Batustun\FilamentMediaLibrary\Http\Controllers\ChunkedUploadController;
 use Batustun\FilamentMediaLibrary\Http\Controllers\ImageEditController;
 use Batustun\FilamentMediaLibrary\Http\Controllers\MediaUploadController;
@@ -21,9 +23,12 @@ use Batustun\FilamentMediaLibrary\Services\MediaIndexer;
 use Batustun\FilamentMediaLibrary\Services\MediaService;
 use Batustun\FilamentMediaLibrary\Services\MediaWriter;
 use Batustun\FilamentMediaLibrary\Support\MediaLibraryConfig;
+use Filament\Actions\Action;
+use Filament\Forms\Components\FileUpload;
 use Filament\Support\Assets\Css;
 use Filament\Support\Assets\Js;
 use Filament\Support\Facades\FilamentAsset;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Route;
 use Livewire\Livewire;
@@ -80,6 +85,56 @@ class FilamentMediaLibraryServiceProvider extends PackageServiceProvider
         );
 
         $this->registerRoutes();
+        $this->attachToExistingFields();
+    }
+
+    /**
+     * Make the library available from fields the application never changed.
+     *
+     * Filament's configureUsing hook runs for every instance created after it
+     * is registered, which is what lets an existing form gain the picker
+     * without a single edit. Everything here is additive and skips anything
+     * that already opted in explicitly.
+     */
+    protected function attachToExistingFields(): void
+    {
+        // Registered unconditionally; the decisions are made per component, so
+        // switching the options at runtime takes effect immediately rather than
+        // needing the application to boot again.
+        FileUpload::configureUsing(function (FileUpload $component): void {
+            if (! MediaLibraryConfig::autoAttachesToFileUpload()) {
+                return;
+            }
+
+            // MediaInput brings its own picker.
+            if ($component instanceof MediaInput) {
+                return;
+            }
+
+            // 'path' rather than 'url': a plain FileUpload stores a
+            // disk-relative path, and auto-attachment must not change the shape
+            // of what an existing form saves.
+            $component->hintAction(
+                fn (): Action => LibraryPickerAction::for($component, returns: 'path'),
+            );
+
+            if (! MediaLibraryConfig::autoIndexesUploads()) {
+                return;
+            }
+
+            // Filament's own setUp() has already run by this point, so this
+            // replaces its default writer rather than being replaced by it.
+            // The returned path keeps its usual shape, so the field still
+            // stores what the application expects.
+            $component->saveUploadedFileUsing(
+                fn (UploadedFile $file): string => app(MediaService::class)->store(
+                    $file,
+                    $component->getDiskName(),
+                    $component->getDirectory() ?: null,
+                )->path,
+            );
+        });
+
     }
 
     protected function registerRoutes(): void
