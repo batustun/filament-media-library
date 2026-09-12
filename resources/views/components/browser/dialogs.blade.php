@@ -63,6 +63,21 @@
             </div>
         </template>
 
+        <template x-if="dialog && dialog.kind === 'move-media'">
+            <div class="fml-modal__body">
+                <h3 class="fml-modal__title">{{ __($t.'.actions.move_to') }}</h3>
+                <p class="fml-modal__desc">{{ __($t.'.messages.move_hint') }}</p>
+                <input
+                    type="text"
+                    class="fi-input fml-modal__input"
+                    x-model="dialog.value"
+                    x-ref="dialogInput"
+                    list="fml-folder-options"
+                    placeholder="{{ __($t.'.fields.destination') }}"
+                />
+            </div>
+        </template>
+
         <template x-if="dialog && dialog.kind === 'delete-media'">
             <div class="fml-modal__body">
                 <h3 class="fml-modal__title fml-danger">{{ __($t.'.actions.delete') }}</h3>
@@ -86,7 +101,7 @@
                 size="sm"
                 x-bind:color="dialog && dialog.kind.startsWith('delete') ? 'danger' : 'primary'"
                 x-on:click="submitDialog()"
-                x-bind:disabled="dialog && ! dialog.kind.startsWith('delete') && ! String(dialog.value ?? '').trim() && dialog.kind !== 'move-selection'"
+                x-bind:disabled="dialog && ! dialog.kind.startsWith('delete') && ! String(dialog.value ?? '').trim() && ! dialog.kind.startsWith('move-')"
             >
                 <span x-text="dialog && dialog.kind.startsWith('delete')
                     ? {!! $js(__($t.'.actions.confirm_delete')) !!}

@@ -7,6 +7,44 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.7.0] - 2026-09-13
+
+### Fixed
+- On the library page, creating, renaming, deleting and moving folders and files
+  did nothing at all. One set of JavaScript drives both the page and the picker,
+  and it calls `createFolder`, `renameMedia`, `deleteMedia`, `deleteFolder`,
+  `moveItemTo` and `moveSelectionTo` — every one of which only the picker
+  defined. A Livewire method that does not exist fails in the browser, so the
+  page had been silently missing half its actions.
+- The picker always opened at the top of the library with nothing selected, even
+  when the field already held a file. It now opens in that file's folder with it
+  selected, whichever shape the field stores — id, path or URL.
+- The picker's footer sat above the modal's own, so two footer rows split a band
+  of height between them and the select button never lined up with close. The
+  modal no longer renders a footer; the picker owns the one row.
+- The page's "details saved" notification printed a raw translation key:
+  `messages.meta_updated` had never been defined in any language.
+- Bulk delete was in the toolbar both hosts render but defined only on the page.
+- Right-clicking a file did nothing, having been disabled in 1.6.0 along with
+  the broken dialog it used to open.
+
+### Added
+- A right-click menu: preview, details, select or deselect, copy URL, open in a
+  new tab, download, rename, move and delete, each shown only where it applies.
+- Downloading works across origins — a CDN ignores the `download` attribute, so
+  the bytes are fetched and handed over as a blob.
+- Moving a single file, which previously had no prompt of its own.
+- `WireContractTest` renders each host and checks that every method its markup
+  and the shared JavaScript call actually exists on it. Seven of the fixes above
+  are failures it reported.
+
+### Changed
+- Every action the front end calls now has one definition, on the shared trait,
+  instead of one per host under two different names and with two different
+  notification bodies. The library page went from roughly two hundred lines to
+  seventy-five.
+- Removed `copyUrlOf()` and `renameOne()`, which nothing called.
+
 ## [1.6.0] - 2026-09-13
 
 ### Fixed
@@ -359,7 +397,8 @@ First public release.
 - English, Turkish, German, French, Spanish, Italian, Dutch, Brazilian
   Portuguese, Russian and Arabic. RTL works without extra rules.
 
-[Unreleased]: https://github.com/batustun/filament-media-library/compare/v1.6.0...HEAD
+[Unreleased]: https://github.com/batustun/filament-media-library/compare/v1.7.0...HEAD
+[1.7.0]: https://github.com/batustun/filament-media-library/compare/v1.6.0...v1.7.0
 [1.6.0]: https://github.com/batustun/filament-media-library/compare/v1.5.2...v1.6.0
 [1.5.2]: https://github.com/batustun/filament-media-library/compare/v1.5.1...v1.5.2
 [1.5.1]: https://github.com/batustun/filament-media-library/compare/v1.5.0...v1.5.1

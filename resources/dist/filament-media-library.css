@@ -830,7 +830,7 @@
 .fml-picker {
     display: flex;
     flex-direction: column;
-    block-size: min(76vh, 56rem);
+    block-size: min(80vh, 58rem);
 }
 
 .fml-picker > .fml-layout {
@@ -866,7 +866,7 @@
 @media (max-width: 767px) {
     .fml-picker {
         block-size: auto;
-        min-block-size: min(76vh, 40rem);
+        min-block-size: min(80vh, 40rem);
     }
 
     .fml-picker .fml-panel--folders {
@@ -1190,4 +1190,65 @@
         inline-size: 1.875rem;
         block-size: 1.875rem;
     }
+}
+
+/* -------------------------------------------------------------------------
+   Right-click menu
+   ------------------------------------------------------------------------- */
+
+.fml-context {
+    position: fixed;
+    z-index: 80;
+    display: flex;
+    flex-direction: column;
+    min-inline-size: 12rem;
+    padding: 0.25rem;
+    border: 1px solid var(--fml-border);
+    border-radius: var(--fml-radius-sm);
+    background-color: var(--fml-panel);
+    box-shadow: 0 10px 15px -3px color-mix(in oklab, var(--gray-950) 12%, transparent),
+        0 4px 6px -4px color-mix(in oklab, var(--gray-950) 12%, transparent);
+}
+
+.fml-context__title {
+    overflow: hidden;
+    padding: 0.375rem 0.5rem;
+    color: var(--fml-text-muted);
+    font-size: 0.6875rem;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.fml-context__item {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    inline-size: 100%;
+    padding: 0.375rem 0.5rem;
+    border: 0;
+    border-radius: 0.375rem;
+    background: none;
+    color: var(--fml-text);
+    font-size: 0.8125rem;
+    text-align: start;
+    cursor: pointer;
+}
+
+.fml-context__item:hover,
+.fml-context__item:focus-visible {
+    background-color: color-mix(in oklab, var(--fml-text) 7%, transparent);
+}
+
+.fml-context__item--danger {
+    color: var(--danger-600);
+}
+
+:where(.dark, .dark *) .fml-context__item--danger {
+    color: var(--danger-400);
+}
+
+.fml-context__divider {
+    block-size: 1px;
+    margin-block: 0.25rem;
+    background-color: var(--fml-border);
 }

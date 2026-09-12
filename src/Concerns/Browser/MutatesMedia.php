@@ -219,6 +219,208 @@ trait MutatesMedia
     }
 
     /**
+     * The actions the browser's front end calls.
+     *
+     * They live here rather than on each host because one set of JavaScript and
+     * one set of views drive both: defined separately, the two drifted apart
+     * under different names and half of them reached nothing on the page.
+     */
+    public function createFolder(string $name): void
+    {
+        $this->authorizeMediaAction('upload');
+
+        $name = app(MediaService::class)->normalizeDirectory($name);
+
+        if ($name === '') {
+            return;
+        }
+
+        // Folders are derived from the files in them, so a new one becomes real
+        // by being navigated into and receiving its first upload.
+        $this->directory = ($this->directory !== '' ? $this->directory.'/' : '').$name;
+        $this->resetPage();
+    }
+
+    public function renameFolder(string $from, string $to): void
+    {
+        if ($this->performRenameFolder(app(MediaService::class), $from, $to) === 0) {
+            return;
+        }
+
+        $this->notify('folder_renamed', ['folder' => $to]);
+    }
+
+    /** Delete a folder and everything nested inside it, disk included. */
+    public function deleteFolder(string $path): void
+    {
+        $this->authorizeMediaAction('delete');
+
+        $service = app(MediaService::class);
+        $path = $service->normalizeDirectory($path);
+
+        if ($path === '') {
+            return;
+        }
+
+        Media::query()
+            ->onDisk($this->disk)
+            ->inDirectoryTree($path)
+            ->chunkById(200, function ($chunk) use ($service): void {
+                foreach ($chunk as $media) {
+                    $service->delete($media);
+                }
+            });
+
+        // Standing in a folder that no longer exists shows an empty grid with
+        // no way back, so browsing returns to the root.
+        if ($this->directory === $path || str_starts_with($this->directory, $path.'/')) {
+            $this->directory = '';
+        }
+
+        $this->forgetFolderCaches();
+        $this->resetPage();
+        $this->notify('folder_deleted', ['folder' => $path]);
+    }
+
+    public function renameMedia(string $id, string $newName): void
+    {
+        if (trim($newName) === '' || $this->performRename(app(MediaService::class), $id, $newName) === null) {
+            return;
+        }
+
+        $this->notify('renamed');
+    }
+
+    public function deleteMedia(string $id): void
+    {
+        if (! $this->performDelete(app(MediaService::class), $id)) {
+            return;
+        }
+
+        $this->notify('deleted');
+    }
+
+    public function bulkDelete(): void
+    {
+        $count = $this->performBulkDelete(app(MediaService::class));
+
+        if ($count === 0) {
+            return;
+        }
+
+        $this->notify('bulk_deleted', ['count' => $count], $count);
+    }
+
+    public function duplicateOne(string $id): void
+    {
+        if ($this->performDuplicate(app(MediaService::class), $id) === null) {
+            return;
+        }
+
+        $this->notify('duplicated');
+    }
+
+    public function replaceFile(string $id): void
+    {
+        $upload = is_array($this->uploads) ? ($this->uploads[0] ?? null) : null;
+
+        if (! $upload) {
+            return;
+        }
+
+        $replaced = $this->performReplace(app(MediaService::class), $id, $upload);
+
+        $this->uploads = [];
+
+        if (! $replaced) {
+            return;
+        }
+
+        Notification::make()
+            ->title(__('filament-media-library::filament-media-library.messages.replaced'))
+            ->body(__('filament-media-library::filament-media-library.messages.replaced_hint'))
+            ->success()
+            ->send();
+    }
+
+    /** @param array<string, mixed> $payload */
+    public function updateMeta(string $id, array $payload): void
+    {
+        if ($this->performUpdateMeta($id, $payload) === null) {
+            return;
+        }
+
+        $this->notify('meta_updated');
+    }
+
+    /** @param array<int, string> $names */
+    public function syncTags(string $id, array $names): void
+    {
+        if ($this->performSyncTags($id, $names) === null) {
+            return;
+        }
+
+        $this->notify('tags_updated');
+    }
+
+    /** Re-read the disk, for when something changed outside the browser. */
+    public function refresh(): void
+    {
+        $this->forgetFolderCaches();
+        $this->resetPage();
+    }
+
+    /**
+     * Say that something worked.
+     *
+     * @param  array<string, mixed>  $replace
+     */
+    protected function notify(string $key, array $replace = [], ?int $count = null): void
+    {
+        $key = 'filament-media-library::filament-media-library.messages.'.$key;
+
+        Notification::make()
+            ->title($count === null ? __($key, $replace) : trans_choice($key, $count, $replace))
+            ->success()
+            ->send();
+    }
+
+    /**
+     * Move what is selected, and say so.
+     *
+     * Named for what the browser's JavaScript calls: the page and the picker
+     * used to define these separately under different names, so dragging a file
+     * onto a folder reached a method that existed on only one of them.
+     */
+    public function moveSelectionTo(?string $directory): void
+    {
+        $this->announceMove($this->performMoveSelection(app(MediaService::class), $directory), $directory);
+    }
+
+    public function moveItemTo(string $id, ?string $directory): void
+    {
+        $moved = $this->performMoveOne(app(MediaService::class), $id, $directory) ? 1 : 0;
+
+        $this->announceMove($moved, $directory);
+    }
+
+    protected function announceMove(int $moved, ?string $directory): void
+    {
+        if ($moved === 0) {
+            return;
+        }
+
+        Notification::make()
+            ->title(trans_choice(
+                'filament-media-library::filament-media-library.messages.moved',
+                $moved,
+                ['count' => $moved, 'folder' => $directory ?: '/'],
+            ))
+            ->success()
+            ->send();
+    }
+
+    /**
      * Store every pending upload.
      *
      * When an identical file (same SHA-256, same disk) is already indexed, the

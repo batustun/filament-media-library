@@ -26,9 +26,11 @@
     x-on:dragend="stopDragging()"
     data-name="{{ $item->name }}"
     data-kind="{{ $item->kind }}"
+    data-directory="{{ $item->directory }}"
     data-url="{{ $item->publicUrl() }}"
     x-on:click="pick({{ $loop->index }}, {!! $js($item->id) !!}, $event)"
     x-on:dblclick.prevent="openPreviewAt({{ $loop->index }})"
+    x-on:contextmenu.prevent="openContextMenu({{ $loop->index }}, $event)"
     x-on:keydown.enter.prevent="openPreviewAt({{ $loop->index }})"
     x-on:keydown.space.prevent="pick({{ $loop->index }}, {!! $js($item->id) !!}, $event)"
 >

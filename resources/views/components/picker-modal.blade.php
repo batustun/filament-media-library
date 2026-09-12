@@ -9,6 +9,7 @@
     /** @var array<int, string> $kinds */
     /** @var string $statePath */
     /** @var string $returns */
+    /** @var array<int, string> $selectedIds */
 
     $t = 'filament-media-library::filament-media-library';
 @endphp
@@ -27,6 +28,7 @@
     })"
     x-on:filament-media-library:picked.window="write($event)"
     x-on:filament-media-library:failed.window="notifyFailure($event)"
+    x-on:filament-media-library:closed.window="dismiss($event)"
 >
     @livewire('filament-media-library-picker', [
         'multiple' => $multiple,
@@ -35,5 +37,6 @@
         'kinds' => $kinds,
         'targetStatePath' => $statePath,
         'uploadDirectory' => $uploadDirectory ?? '',
+        'selectedIds' => $selectedIds ?? [],
     ], key('fml-picker-'.$statePath))
 </div>

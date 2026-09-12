@@ -24,6 +24,9 @@ window.fmlBrowser = function ({ mode = 'page' } = {}) {
         /** The file being shown full size, or null. */
         preview: null,
 
+        /** The right-click menu: the file it is about, and where to put it. */
+        contextMenu: null,
+
         /**
          * Folder paths whose children are on show.
          *
@@ -117,6 +120,58 @@ window.fmlBrowser = function ({ mode = 'page' } = {}) {
         /** @param {string[]} paths every folder that has children */
         toggleAllFolders(paths) {
             this.expandedFolders = this.allFoldersOpen(paths) ? [] : [...paths]
+        },
+
+        // ------------------------------------------------------- context menu
+
+        /**
+         * Open the menu at the pointer, on the file that was clicked.
+         *
+         * Everything it offers is already reachable elsewhere; having it under
+         * the right mouse button is what makes a file manager feel like one.
+         */
+        openContextMenu(index, event) {
+            const card = this.cards()[index]
+
+            if (! card) return
+
+            this.closePreview()
+
+            this.contextMenu = {
+                ...card.dataset,
+                index,
+                selected: card.getAttribute('aria-selected') === 'true',
+                x: event.clientX,
+                y: event.clientY,
+            }
+
+            // Placed after render, when the menu's size is known, so it never
+            // opens off the bottom or the side of the window.
+            this.$nextTick(() => {
+                const menu = this.$refs.contextMenu
+
+                if (! menu || ! this.contextMenu) return
+
+                const { width, height } = menu.getBoundingClientRect()
+
+                this.contextMenu.x = Math.max(8, Math.min(this.contextMenu.x, window.innerWidth - width - 8))
+                this.contextMenu.y = Math.max(8, Math.min(this.contextMenu.y, window.innerHeight - height - 8))
+
+                menu.focus()
+            })
+        },
+
+        closeContextMenu() {
+            this.contextMenu = null
+        },
+
+        /** Run one menu entry and get the menu out of the way. */
+        fromContextMenu(action) {
+            const item = this.contextMenu
+
+            this.closeContextMenu()
+
+            if (item) action(item)
         },
 
         // ------------------------------------------------------------ preview
@@ -249,6 +304,7 @@ window.fmlBrowser = function ({ mode = 'page' } = {}) {
                 'rename-folder': () => value && this.$wire.renameFolder(dialog.payload.path, value),
                 'rename-media': () => value && this.$wire.renameMedia(dialog.payload.id, value),
                 'move-selection': () => this.$wire.moveSelectionTo(value),
+                'move-media': () => this.$wire.moveItemTo(dialog.payload.id, value),
                 'delete-media': () => this.$wire.deleteMedia(dialog.payload.id),
                 'delete-folder': () => this.$wire.deleteFolder(dialog.payload.path),
             }
@@ -256,6 +312,36 @@ window.fmlBrowser = function ({ mode = 'page' } = {}) {
             actions[dialog.kind]?.()
 
             this.closeDialog()
+        },
+
+        /**
+         * Save a file without navigating away.
+         *
+         * A cross-origin CDN ignores the `download` attribute and opens the
+         * file instead, so the bytes are fetched and handed over as a blob.
+         */
+        async download(url, name) {
+            const link = document.createElement('a')
+
+            link.download = name || ''
+            link.rel = 'noopener'
+            link.href = url
+
+            try {
+                const response = await fetch(url, { credentials: 'omit' })
+
+                if (response.ok) {
+                    link.href = URL.createObjectURL(await response.blob())
+                }
+            } catch (error) {
+                // Blocked by CORS: fall back to the plain link.
+            }
+
+            document.body.append(link)
+            link.click()
+            link.remove()
+
+            if (link.href.startsWith('blob:')) URL.revokeObjectURL(link.href)
         },
 
         // ------------------------------------------------------------ clipboard
@@ -480,6 +566,22 @@ window.fmlPickerBridge = function ({ statePath, returns, multiple, failureTitle 
             window.dispatchEvent(new CustomEvent('filament-media-library:failed', {
                 detail: { statePath, reason },
             }))
+        },
+
+        /**
+         * Close the modal on the picker's behalf.
+         *
+         * The picker renders the close button — it owns the footer — but only
+         * the field's own component can unmount the action that opened it.
+         */
+        dismiss(event) {
+            if (event.detail?.statePath !== statePath) return
+
+            try {
+                this.$wire.unmountAction()
+            } catch (error) {
+                //
+            }
         },
 
         /** Only the field that failed says so — a page may hold several. */

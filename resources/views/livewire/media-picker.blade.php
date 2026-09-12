@@ -44,6 +44,10 @@
                         </x-filament::link>
                     @endif
 
+                    <x-filament::button color="gray" wire:click="close">
+                        {{ __($t.'.actions.close') }}
+                    </x-filament::button>
+
                     <x-filament::button
                         icon="heroicon-m-check"
                         wire:click="confirmSelection"
@@ -59,6 +63,8 @@
     </div>
 
     @include('filament-media-library::components.browser.lightbox')
+
+    @include('filament-media-library::components.browser.context-menu')
 
     @include('filament-media-library::components.browser.dialogs', ['folders' => $folders])
 

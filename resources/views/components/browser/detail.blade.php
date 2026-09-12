@@ -456,7 +456,7 @@
                     size="sm"
                     color="danger"
                     icon="heroicon-m-trash"
-                    wire:click="deleteOne({!! $js($item->id) !!})"
+                    wire:click="deleteMedia({!! $js($item->id) !!})"
                     wire:confirm="{{ __($t.'.messages.confirm_delete', ['name' => $item->name]) }}"
                 >
                     {{ __($t.'.actions.delete') }}

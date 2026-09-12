@@ -64,6 +64,8 @@
 
         @include('filament-media-library::components.browser.lightbox')
 
+        @include('filament-media-library::components.browser.context-menu')
+
         @include('filament-media-library::components.browser.dialogs', ['folders' => $folders])
     </div>
 </x-filament-panels::page>

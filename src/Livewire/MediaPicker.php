@@ -43,7 +43,10 @@ class MediaPicker extends Component implements HasActions, HasSchemas
     /** @var array<int, string> */
     public array $kinds = [];
 
-    /** @param array<int, string> $kinds */
+    /**
+     * @param  array<int, string>  $kinds
+     * @param  array<int, string>  $selectedIds  what the field already holds
+     */
     public function mount(
         bool $multiple = false,
         ?string $disk = null,
@@ -51,12 +54,17 @@ class MediaPicker extends Component implements HasActions, HasSchemas
         array $kinds = [],
         string $targetStatePath = '',
         string $uploadDirectory = '',
+        array $selectedIds = [],
     ): void {
         Authorize::ensure('view');
 
         $this->multiple = $multiple;
         $this->targetStatePath = $targetStatePath;
         $this->kinds = array_values(array_filter($kinds, 'is_string'));
+
+        // Open on what the field is already showing, so the picker starts where
+        // the last choice was made rather than at the top of the library.
+        $this->selected = array_values(array_filter($selectedIds, 'is_string'));
 
         $service = app(MediaService::class);
         $this->uploadDirectory = $service->normalizeDirectory($uploadDirectory);
@@ -78,73 +86,6 @@ class MediaPicker extends Component implements HasActions, HasSchemas
      * Navigate into a new folder. Empty folders are not persisted on their
      * own — the directory becomes real once the first file lands in it.
      */
-    public function createFolder(string $name): void
-    {
-        $this->authorizeMediaAction('upload');
-
-        $name = app(MediaService::class)->normalizeDirectory($name);
-
-        if ($name === '') {
-            return;
-        }
-
-        $this->directory = ($this->directory !== '' ? $this->directory.'/' : '').$name;
-        $this->resetPage();
-    }
-
-    public function refresh(): void
-    {
-        $this->forgetFolderCaches();
-        $this->resetPage();
-    }
-
-    public function renameMedia(string $id, string $newName): void
-    {
-        if (trim($newName) === '') {
-            return;
-        }
-
-        $this->performRename(app(MediaService::class), $id, $newName);
-    }
-
-    public function deleteMedia(string $id): void
-    {
-        $this->performDelete(app(MediaService::class), $id);
-    }
-
-    /**
-     * Delete a folder and everything nested inside it, from both the database
-     * and the storage disk.
-     */
-    public function deleteFolder(string $path): void
-    {
-        $this->authorizeMediaAction('delete');
-
-        $path = app(MediaService::class)->normalizeDirectory($path);
-
-        if ($path === '') {
-            return;
-        }
-
-        $service = app(MediaService::class);
-
-        Media::query()
-            ->onDisk($this->disk)
-            ->inDirectoryTree($path)
-            ->chunkById(200, function ($chunk) use ($service): void {
-                foreach ($chunk as $media) {
-                    $service->delete($media);
-                }
-            });
-
-        if ($this->directory === $path || str_starts_with($this->directory, $path.'/')) {
-            $this->directory = '';
-        }
-
-        $this->forgetFolderCaches();
-        $this->resetPage();
-    }
-
     public function toggleSelectFor(string $id): void
     {
         if ($this->multiple) {
@@ -156,6 +97,15 @@ class MediaPicker extends Component implements HasActions, HasSchemas
         // Clicking the chosen file again clears it. Without this a single-value
         // field could be changed but never emptied by the same gesture.
         $this->selected = $this->selected === [$id] ? [] : [$id];
+    }
+
+    /**
+     * Ask the field's component to unmount the action this picker was opened
+     * from: a nested component cannot close the modal that contains it.
+     */
+    public function close(): void
+    {
+        $this->dispatch('filament-media-library:closed', statePath: $this->targetStatePath);
     }
 
     public function confirmSelection(): void
@@ -218,37 +168,6 @@ class MediaPicker extends Component implements HasActions, HasSchemas
         }
 
         $this->resetPage();
-    }
-
-    public function moveSelectionTo(?string $directory): void
-    {
-        $this->performMoveSelection(app(MediaService::class), $directory);
-    }
-
-    public function moveItemTo(string $id, ?string $directory): void
-    {
-        $this->performMoveOne(app(MediaService::class), $id, $directory);
-    }
-
-    public function duplicateOne(string $id): void
-    {
-        $this->performDuplicate(app(MediaService::class), $id);
-    }
-
-    /** @param array<int, string> $names */
-    public function syncTags(string $id, array $names): void
-    {
-        $this->performSyncTags($id, $names);
-    }
-
-    public function updateMeta(string $id, array $payload): void
-    {
-        $this->performUpdateMeta($id, $payload);
-    }
-
-    public function renameFolder(string $from, string $to): void
-    {
-        $this->performRenameFolder(app(MediaService::class), $from, $to);
     }
 
     public function render(): View

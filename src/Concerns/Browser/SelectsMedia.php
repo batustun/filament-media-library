@@ -51,6 +51,15 @@ trait SelectsMedia
     }
 
     /**
+     * What a plain click selects. The picker narrows this to a single file when
+     * the field it is filling takes one.
+     */
+    public function toggleSelectFor(string $id): void
+    {
+        $this->toggleSelect($id);
+    }
+
+    /**
      * Select a contiguous run of items, used by Shift+click.
      *
      * @param  array<int, string>  $ids
