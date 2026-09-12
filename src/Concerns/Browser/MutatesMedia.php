@@ -10,6 +10,7 @@ use Batustun\FilamentMediaLibrary\Support\Authorize;
 use Batustun\FilamentMediaLibrary\Support\MediaLibraryConfig;
 use Filament\Actions\Action;
 use Filament\Actions\Contracts\HasActions;
+use Filament\Notifications\Notification;
 use Filament\Schemas\Contracts\HasSchemas;
 use Filament\Schemas\Schema;
 
@@ -118,6 +119,106 @@ trait MutatesMedia
     }
 
     /**
+     * Files are stored the moment they are chosen.
+     *
+     * Staging them behind a second button changed nothing on screen but that
+     * button's tint, so choosing a file was indistinguishable from the upload
+     * having failed — and nobody knew there was a second step at all.
+     */
+    public function updatedUploads(): void
+    {
+        $this->storeUploads();
+    }
+
+    public function storeUploads(): void
+    {
+        $result = $this->performUpload(app(MediaService::class));
+
+        $this->announceUpload($result);
+        $this->afterUpload($result['ids']);
+    }
+
+    /**
+     * Adopt files that went up through the chunked endpoint.
+     *
+     * Those bypass Livewire entirely — the property never changes, so without
+     * this the picker would never learn they had arrived.
+     *
+     * @param  array<int, string>  $ids
+     */
+    public function adoptUploads(array $ids): void
+    {
+        $this->authorizeMediaAction('upload');
+
+        $ids = array_values(array_filter(array_map(strval(...), $ids)));
+
+        if ($ids === []) {
+            return;
+        }
+
+        $this->forgetFolderCaches();
+        $this->announceUpload(['stored' => count($ids), 'reused' => 0, 'ids' => $ids]);
+        $this->afterUpload($ids);
+    }
+
+    /**
+     * Say what the upload actually did.
+     *
+     * Silence is the worst outcome here: a byte-identical file is reused rather
+     * than stored again, so no new card appears — and without a word, that is
+     * indistinguishable from the upload having failed.
+     *
+     * @param  array{stored: int, reused: int, ids: array<int, string>}  $result
+     */
+    protected function announceUpload(array $result): void
+    {
+        $t = 'filament-media-library::filament-media-library.messages.';
+
+        if ($result['stored'] === 0 && $result['reused'] === 0) {
+            return;
+        }
+
+        $notification = Notification::make()->success();
+
+        if ($result['stored'] > 0) {
+            $notification->title(trans_choice($t.'uploaded', $result['stored'], ['count' => $result['stored']]));
+
+            if ($result['reused'] > 0) {
+                $notification->body(trans_choice($t.'reused', $result['reused'], ['count' => $result['reused']]));
+            }
+        } else {
+            $notification
+                ->title(__($t.'all_reused'))
+                ->body(__($t.'reused_hint'));
+        }
+
+        $notification->send();
+    }
+
+    /**
+     * What the host does with the files that just arrived. The page only has to
+     * show them; the picker also selects them.
+     *
+     * @param  array<int, string>  $ids
+     */
+    protected function afterUpload(array $ids): void
+    {
+        $this->resetPage();
+    }
+
+    /**
+     * Where new uploads land. The picker overrides this so a field configured
+     * with a directory keeps filling it even while browsing the library root.
+     *
+     * Public because the dropzone names the destination in its hint, and a hint
+     * that disagrees with where the file actually goes is worse than none.
+     */
+    public function uploadTargetDirectory(): ?string
+    {
+        return $this->directory ?: null;
+    }
+
+    /**
      * Store every pending upload.
      *
      * When an identical file (same SHA-256, same disk) is already indexed, the
@@ -155,7 +256,7 @@ trait MutatesMedia
 
             $media = ($provider = $this->currentProvider())
                 ? $service->storeToProvider($provider, $upload)
-                : $service->store($upload, $this->disk, $this->directory ?: null);
+                : $service->store($upload, $this->disk, $this->uploadTargetDirectory());
 
             $stored++;
             $ids[] = (string) $media->getKey();

@@ -62,6 +62,7 @@
                         <th>{{ __($t.'.fields.size') }}</th>
                         <th>{{ __($t.'.fields.folder') }}</th>
                         <th>{{ __($t.'.fields.date') }}</th>
+                        <th class="fml-table__peek"><span class="fml-sr-only">{{ __($t.'.actions.preview') }}</span></th>
                     </tr>
                 </thead>
                 <tbody>

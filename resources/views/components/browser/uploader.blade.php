@@ -6,23 +6,38 @@
     $js = fn (mixed $value): \Illuminate\Support\Js => \Illuminate\Support\Js::from($value);
 
     $t = 'filament-media-library::filament-media-library';
-    $target = $uploadAction ?? 'uploadFiles';
-    $chunked = MediaLibraryConfig::chunkedUploadsEnabled() && Route::has('filament-media-library.chunk');
+
+    // Only files too large for a single POST take the chunked route; without a
+    // configured endpoint the uploader simply never offers it.
+    $chunkEndpoint = MediaLibraryConfig::chunkedUploadsEnabled() && Route::has('filament-media-library.chunk')
+        ? route('filament-media-library.chunk')
+        : null;
+
+    $destination = $this->uploadTargetDirectory();
 @endphp
 
+{{--
+    Files upload the moment they are chosen. There is no second button: staging
+    them behind one changed nothing on screen but that button's tint, so
+    choosing a file was indistinguishable from the upload having failed.
+--}}
 <div
     class="fml-dropzone"
-    @if ($chunked)
-        x-data="fmlChunkedUpload({
-            endpoint: {!! $js(route('filament-media-library.chunk')) !!},
-            csrf: {!! $js(csrf_token()) !!},
-            chunkSize: {{ MediaLibraryConfig::chunkSizeBytes() }},
-            threshold: {{ MediaLibraryConfig::chunkThresholdBytes() }},
-            disk: {!! $js($disk) !!},
-            directory: {!! $js($directory) !!},
-        })"
-        x-on:change.capture="interceptChange($event)"
-    @endif
+    x-data="fmlUploader({
+        endpoint: {!! $js($chunkEndpoint) !!},
+        csrf: {!! $js(csrf_token()) !!},
+        chunkSize: {{ MediaLibraryConfig::chunkSizeBytes() }},
+        threshold: {{ MediaLibraryConfig::chunkThresholdBytes() }},
+        disk: {!! $js($disk) !!},
+        directory: {!! $js($destination) !!},
+        progressLabel: {!! $js(__($t.'.messages.uploading_percent', ['percent' => ':percent'])) !!},
+        chunkLabel: {!! $js(__($t.'.messages.uploading_chunks', ['done' => ':done', 'total' => ':total'])) !!},
+    })"
+    x-on:change.capture="interceptChange($event)"
+    x-on:livewire-upload-start="percent = 0"
+    x-on:livewire-upload-progress="percent = $event.detail.progress"
+    x-on:livewire-upload-finish="percent = null"
+    x-on:livewire-upload-error="percent = null"
     x-bind:data-active="dragActive ? 'true' : 'false'"
     x-on:dragover.prevent="dragActive = true"
     x-on:dragleave.prevent="dragActive = false"
@@ -35,35 +50,20 @@
         <input type="file" multiple wire:model="uploads" x-ref="fileInput" class="fml-sr-only" />
     </label>
 
-    <x-filament::button
-        size="sm"
-        color="success"
-        icon="heroicon-m-cloud-arrow-up"
-        wire:click="{{ $target }}"
-        wire:loading.attr="disabled"
-        wire:target="uploads,{{ $target }}"
-        :disabled="empty($uploads)"
-    >
-        <span wire:loading.remove wire:target="uploads,{{ $target }}">{{ __($t.'.actions.upload') }}</span>
-        <span wire:loading wire:target="uploads,{{ $target }}">{{ __($t.'.actions.uploading') }}</span>
-    </x-filament::button>
-
     <p class="fml-dropzone__hint">
-        {{ __($t.'.messages.drop_hint', ['folder' => $directory ?: '/']) }}
+        {{ __($t.'.messages.drop_hint', ['folder' => $destination ?: '/']) }}
     </p>
 
-    <div wire:loading.flex wire:target="uploads" class="fml-dropzone__overlay" hidden>
+    {{-- Sending the bytes, then writing them to the library: one busy state. --}}
+    <div x-show="busyLabel() !== null" x-cloak class="fml-dropzone__overlay">
         <x-filament::loading-indicator class="fml-icon-sm" />
-        {{ __($t.'.messages.preparing') }}
+        <span x-text="busyLabel()"></span>
     </div>
 
-    @if ($chunked)
-        <div x-show="busy" x-cloak class="fml-dropzone__overlay">
-            <x-filament::loading-indicator class="fml-icon-sm" />
-            <span x-text="{!! $js(__($t.'.messages.uploading_chunks', ['done' => ':done', 'total' => ':total'])) !!}
-                .replace(':done', done).replace(':total', total)"></span>
-        </div>
+    <div wire:loading.flex wire:target="storeUploads,adoptUploads" class="fml-dropzone__overlay" hidden>
+        <x-filament::loading-indicator class="fml-icon-sm" />
+        {{ __($t.'.messages.indexing') }}
+    </div>
 
-        <p x-show="error" x-cloak x-text="error" class="fml-dropzone__hint fml-danger"></p>
-    @endif
+    <p x-show="error" x-cloak x-text="error" class="fml-dropzone__hint fml-danger"></p>
 </div>

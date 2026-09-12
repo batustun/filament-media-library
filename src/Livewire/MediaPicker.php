@@ -10,7 +10,6 @@ use Batustun\FilamentMediaLibrary\Services\MediaService;
 use Batustun\FilamentMediaLibrary\Support\Authorize;
 use Filament\Actions\Concerns\InteractsWithActions;
 use Filament\Actions\Contracts\HasActions;
-use Filament\Notifications\Notification;
 use Filament\Schemas\Concerns\InteractsWithSchemas;
 use Filament\Schemas\Contracts\HasSchemas;
 use Illuminate\Contracts\View\View;
@@ -154,7 +153,9 @@ class MediaPicker extends Component implements HasActions, HasSchemas
             return;
         }
 
-        $this->selected = [$id];
+        // Clicking the chosen file again clears it. Without this a single-value
+        // field could be changed but never emptied by the same gesture.
+        $this->selected = $this->selected === [$id] ? [] : [$id];
     }
 
     public function confirmSelection(): void
@@ -193,72 +194,30 @@ class MediaPicker extends Component implements HasActions, HasSchemas
         );
     }
 
-    public function uploadAndApply(): void
+    /**
+     * New uploads land in the directory the field was configured with, even
+     * while the browser is showing the library root — so a field pointed at
+     * "advertisements" never scatters files across the library.
+     */
+    public function uploadTargetDirectory(): ?string
     {
-        $service = app(MediaService::class);
-
-        $originalDirectory = $this->directory;
-
-        if ($this->directory === '' && $this->uploadDirectory !== '') {
-            $this->directory = $this->uploadDirectory;
-        }
-
-        try {
-            $result = $this->performUpload($service);
-        } finally {
-            $this->directory = $originalDirectory;
-        }
-
-        $this->announceUpload($result);
-
-        if ($result['ids'] === []) {
-            return;
-        }
-
-        // Select what was just uploaded, but do NOT confirm: confirming closes
-        // the modal, so the file the editor just added would flash past without
-        // ever being seen in the grid — which reads as "the upload did nothing".
-        // They press the select button when they are ready.
-        $this->selected = $this->multiple
-            ? $result['ids']
-            : [$result['ids'][0]];
-
-        $this->forgetFolderCaches();
-        $this->resetPage();
+        return ($this->directory ?: $this->uploadDirectory) ?: null;
     }
 
     /**
-     * Say what the upload actually did.
+     * Select what just arrived, but do NOT confirm: confirming closes the
+     * modal, so the file would flash past without ever being seen in the grid —
+     * which reads as "the upload did nothing". They confirm when ready.
      *
-     * Silence is the worst outcome here: a byte-identical file is reused rather
-     * than stored again, so no new card appears — and without a word, that is
-     * indistinguishable from the upload having failed.
-     *
-     * @param  array{stored: int, reused: int, ids: array<int, string>}  $result
+     * @param  array<int, string>  $ids
      */
-    protected function announceUpload(array $result): void
+    protected function afterUpload(array $ids): void
     {
-        $t = 'filament-media-library::filament-media-library.messages.';
-
-        if ($result['stored'] === 0 && $result['reused'] === 0) {
-            return;
+        if ($ids !== []) {
+            $this->selected = $this->multiple ? $ids : [$ids[0]];
         }
 
-        $notification = Notification::make()->success();
-
-        if ($result['stored'] > 0) {
-            $notification->title(trans_choice($t.'uploaded', $result['stored'], ['count' => $result['stored']]));
-
-            if ($result['reused'] > 0) {
-                $notification->body(trans_choice($t.'reused', $result['reused'], ['count' => $result['reused']]));
-            }
-        } else {
-            $notification
-                ->title(__($t.'all_reused'))
-                ->body(__($t.'reused_hint'));
-        }
-
-        $notification->send();
+        $this->resetPage();
     }
 
     public function moveSelectionTo(?string $directory): void

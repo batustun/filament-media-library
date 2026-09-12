@@ -156,15 +156,62 @@
 
 /* ---------------------------------------------------------------- folders */
 
+.fml-panel--folders {
+    display: flex;
+    flex-direction: column;
+    min-block-size: 0;
+}
+
 .fml-folders {
     display: flex;
     flex-direction: column;
     gap: 0.125rem;
+    flex: 1 1 auto;
+    /* Grows with its panel; the cap only applies on the page, where the column
+       is not height-constrained and would otherwise run past the fold. */
+    min-block-size: 0;
     max-block-size: 60vh;
     overflow-y: auto;
     padding: 0.5rem;
     margin: 0;
     list-style: none;
+}
+
+/* The disclosure triangle. A leaf keeps the same box so names stay aligned. */
+.fml-folder__twist {
+    display: flex;
+    flex: none;
+    align-items: center;
+    justify-content: center;
+    inline-size: 1rem;
+    block-size: 1rem;
+    border: 0;
+    border-radius: 0.25rem;
+    background: none;
+    color: var(--fml-text-muted);
+    cursor: pointer;
+    transition: transform 120ms ease, color 120ms ease;
+}
+
+.fml-folder__twist:hover {
+    color: var(--fml-text);
+}
+
+.fml-folder__twist--open {
+    transform: rotate(90deg);
+}
+
+[dir='rtl'] .fml-folder__twist {
+    transform: rotate(180deg);
+}
+
+[dir='rtl'] .fml-folder__twist--open {
+    transform: rotate(90deg);
+}
+
+.fml-folder__twist--leaf {
+    cursor: default;
+    pointer-events: none;
 }
 
 .fml-folder {
@@ -322,12 +369,52 @@
     color: #fff;
 }
 
-.fml-card__badge {
+.fml-card__tools {
     position: absolute;
     inset-block-start: 0.375rem;
     inset-inline-end: 0.375rem;
     z-index: 10;
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
 }
+
+.fml-card__tool {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    inline-size: 1.375rem;
+    block-size: 1.375rem;
+    border: 1px solid var(--fml-border);
+    border-radius: 0.375rem;
+    background-color: var(--fml-panel);
+    color: var(--fml-text-muted);
+    opacity: 0;
+    transition: opacity 150ms ease, color 150ms ease;
+}
+
+.fml-card__tool:hover,
+.fml-card__tool:focus-visible {
+    color: var(--fml-text);
+}
+
+.fml-card:hover .fml-card__tool,
+.fml-card:focus-within .fml-card__tool {
+    opacity: 1;
+}
+
+/* Touch has no hover, so the affordance has to be permanent. */
+@media (hover: none) {
+    .fml-card__tool {
+        opacity: 1;
+    }
+}
+
+.fml-table__peek {
+    inline-size: 1px;
+    white-space: nowrap;
+}
+
 
 .fml-card__meta {
     display: flex;
@@ -737,20 +824,58 @@
 
 /* ------------------------------------------------------------------ picker */
 
+/* The picker fills the height it is given rather than a fixed slice of the
+   viewport, so the grid gets every pixel the modal can spare and the footer
+   sits on the bottom edge instead of halfway up. */
 .fml-picker {
     display: flex;
     flex-direction: column;
-    min-block-size: 60vh;
+    block-size: min(76vh, 56rem);
 }
 
-/* The picker lives inside a modal, so the results scroll rather than growing
-   the modal past the viewport. */
+.fml-picker > .fml-layout {
+    flex: 1 1 auto;
+    min-block-size: 0;
+    align-items: stretch;
+}
+
+.fml-picker .fml-layout__aside,
+.fml-picker .fml-layout__main {
+    min-block-size: 0;
+}
+
+/* The sidebar runs the full height of the grid beside it. */
+.fml-picker .fml-panel--folders {
+    block-size: 100%;
+}
+
+.fml-picker .fml-folders {
+    max-block-size: none;
+}
+
+/* Results scroll rather than growing the modal past the viewport. */
 .fml-picker__scroll {
     flex: 1 1 auto;
     min-block-size: 0;
-    max-block-size: 46vh;
     overflow-y: auto;
     padding-inline-end: 0.25rem;
+}
+
+/* Below md the sidebar is a disclosure stacked above the grid, so a full-height
+   column would push the results off screen. */
+@media (max-width: 767px) {
+    .fml-picker {
+        block-size: auto;
+        min-block-size: min(76vh, 40rem);
+    }
+
+    .fml-picker .fml-panel--folders {
+        block-size: auto;
+    }
+
+    .fml-picker .fml-folders {
+        max-block-size: 40vh;
+    }
 }
 
 .fml-picker__footer {
@@ -943,4 +1068,126 @@
     font-size: 0.6875rem;
     color: var(--fml-text-muted);
     font-variant-numeric: tabular-nums;
+}
+
+/* -------------------------------------------------------------------------
+   Full-size preview
+   ------------------------------------------------------------------------- */
+
+.fml-lightbox {
+    position: fixed;
+    inset: 0;
+    z-index: 70;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 3.5rem 1rem 1rem;
+    background-color: color-mix(in oklab, var(--gray-950) 80%, transparent);
+    backdrop-filter: blur(4px);
+}
+
+.fml-lightbox__bar {
+    position: absolute;
+    inset-block-start: 0;
+    inset-inline: 0;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+    padding: 0.625rem 0.875rem;
+    background-color: var(--fml-panel);
+    border-block-end: 1px solid var(--fml-border);
+}
+
+.fml-lightbox__name {
+    overflow: hidden;
+    font-size: 0.8125rem;
+    font-weight: 500;
+    color: var(--fml-text);
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.fml-lightbox__step {
+    position: absolute;
+    inset-block-start: 50%;
+    z-index: 10;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    inline-size: 2.25rem;
+    block-size: 2.25rem;
+    border: 1px solid var(--fml-border);
+    border-radius: 9999px;
+    background-color: var(--fml-panel);
+    color: var(--fml-text);
+    transform: translateY(-50%);
+    transition: opacity 150ms ease;
+    opacity: 0.75;
+}
+
+.fml-lightbox__step:hover,
+.fml-lightbox__step:focus-visible {
+    opacity: 1;
+}
+
+.fml-lightbox__step--prev {
+    inset-inline-start: 0.75rem;
+}
+
+.fml-lightbox__step--next {
+    inset-inline-end: 0.75rem;
+}
+
+/* The arrows point the way the reader reads. */
+[dir='rtl'] .fml-lightbox__step--prev > *,
+[dir='rtl'] .fml-lightbox__step--next > * {
+    transform: scaleX(-1);
+}
+
+.fml-lightbox__frame {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    max-inline-size: min(100%, 72rem);
+    max-block-size: 100%;
+    margin: 0;
+}
+
+.fml-lightbox__media {
+    max-inline-size: 100%;
+    max-block-size: calc(100vh - 5.5rem);
+    border-radius: var(--fml-radius-sm);
+    background-color: var(--fml-panel);
+    object-fit: contain;
+}
+
+.fml-lightbox__frame--document {
+    inline-size: min(100vw - 2rem, 72rem);
+    block-size: calc(100vh - 5.5rem);
+    border: 0;
+}
+
+.fml-lightbox__audio {
+    inline-size: min(100%, 28rem);
+}
+
+.fml-lightbox__placeholder {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 2.5rem;
+    border: 1px solid var(--fml-border);
+    border-radius: var(--fml-radius);
+    background-color: var(--fml-panel);
+    color: var(--fml-text);
+    text-align: center;
+}
+
+@media (max-width: 640px) {
+    .fml-lightbox__step {
+        inline-size: 1.875rem;
+        block-size: 1.875rem;
+    }
 }

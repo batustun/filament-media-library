@@ -33,6 +33,9 @@ beforeEach(function () {
         Media::create([
             'disk' => 'public',
             'path' => $path,
+            // MediaService sets this when storing; without it the folder
+            // sidebar renders nothing and its markup goes unchecked.
+            'directory' => trim(dirname($path), '.'),
             'name' => $name,
             'kind' => $kind,
             'size' => 2048,

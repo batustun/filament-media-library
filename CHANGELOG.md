@@ -7,6 +7,53 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.6.0] - 2026-09-13
+
+### Fixed
+- Choosing a file uploaded nothing. Files were staged behind a second button
+  whose only visible change was its own tint — no name, no count, no preview —
+  so picking a file was indistinguishable from the upload having failed, and
+  nobody knew there was a second step. Files now upload the moment they are
+  chosen or dropped, with a progress percentage while the bytes are in flight,
+  and the button is gone.
+- Right-clicking a file opened an empty modal. The card asked for a `context`
+  dialog that the markup never defined and no handler ever answered.
+- Nothing could be seen at full size. The picker had no detail panel at all and
+  the page's is a sidebar; there was no way to actually look at a file.
+- Clicking the chosen file again did not clear it. A single-value field could be
+  changed but never emptied by the same gesture.
+- The folder sidebar stopped short of the panel it sits in, and the picker's
+  results were capped at 46% of the viewport, leaving the footer floating
+  mid-modal with dead space beneath it. Both filled a fixed fraction of the
+  screen rather than the space they were given.
+- The library page's detail panel became unreachable and the uploader's
+  destination hint named the folder being browsed rather than the one files
+  actually land in.
+- `user_model` now follows `config('auth.providers.users.model')` when it is not
+  set explicitly, instead of assuming `App\Models\User`.
+
+### Added
+- A full-size preview. A magnifier on each card, a double-click, or Enter opens
+  the file as large as it fits — images, video, audio and PDFs inline, anything
+  else with a link out — and the arrow keys step through the grid without
+  closing it.
+- The folder tree collapses. It arrives closed so a deep library does not bury
+  its top level, opens a level at a time, and keeps the folder being browsed
+  visible. A control beside "new folder" opens or closes the whole tree.
+- `adoptUploads()`, so files sent through the chunked endpoint — which bypasses
+  Livewire entirely — are announced and selected like any other upload.
+
+### Changed
+- `MediaPicker::uploadAndApply()` and `MediaLibrary::uploadFiles()` are now one
+  `storeUploads()` on the shared trait, with `afterUpload()` and
+  `uploadTargetDirectory()` as the points where the two hosts differ. The
+  upload notification had been copied into both.
+- The card's corner is one `.fml-card__tools` cluster rather than three
+  separately positioned elements; `.fml-card__badge` and `.fml-card__peek` are
+  gone. Run `php artisan filament:assets` after upgrading.
+- Removed the `actions.upload`, `actions.uploading` and `messages.preparing`
+  translations, which the second upload step needed and nothing else uses.
+
 ## [1.5.2] - 2026-09-12
 
 ### Fixed
@@ -312,7 +359,8 @@ First public release.
 - English, Turkish, German, French, Spanish, Italian, Dutch, Brazilian
   Portuguese, Russian and Arabic. RTL works without extra rules.
 
-[Unreleased]: https://github.com/batustun/filament-media-library/compare/v1.5.2...HEAD
+[Unreleased]: https://github.com/batustun/filament-media-library/compare/v1.6.0...HEAD
+[1.6.0]: https://github.com/batustun/filament-media-library/compare/v1.5.2...v1.6.0
 [1.5.2]: https://github.com/batustun/filament-media-library/compare/v1.5.1...v1.5.2
 [1.5.1]: https://github.com/batustun/filament-media-library/compare/v1.5.0...v1.5.1
 [1.5.0]: https://github.com/batustun/filament-media-library/compare/v1.4.4...v1.5.0

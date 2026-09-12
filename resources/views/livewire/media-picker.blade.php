@@ -22,7 +22,7 @@
             @include('filament-media-library::components.browser.toolbar')
 
             @if ($this->canMedia('upload'))
-                @include('filament-media-library::components.browser.uploader', ['uploadAction' => 'uploadAndApply'])
+                @include('filament-media-library::components.browser.uploader')
             @endif
 
             <div class="fml-picker__scroll">
@@ -57,6 +57,8 @@
             </footer>
         </section>
     </div>
+
+    @include('filament-media-library::components.browser.lightbox')
 
     @include('filament-media-library::components.browser.dialogs', ['folders' => $folders])
 

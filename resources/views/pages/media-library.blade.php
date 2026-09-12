@@ -46,7 +46,7 @@
                 @include('filament-media-library::components.browser.toolbar')
 
                 @if ($this->canMedia('upload'))
-                    @include('filament-media-library::components.browser.uploader', ['uploadAction' => 'uploadFiles'])
+                    @include('filament-media-library::components.browser.uploader')
                 @endif
 
                 @include('filament-media-library::components.browser.results', [
@@ -61,6 +61,8 @@
                 </aside>
             @endif
         </div>
+
+        @include('filament-media-library::components.browser.lightbox')
 
         @include('filament-media-library::components.browser.dialogs', ['folders' => $folders])
     </div>

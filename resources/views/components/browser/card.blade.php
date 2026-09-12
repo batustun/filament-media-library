@@ -5,6 +5,8 @@
     // inside component-tag attributes, and they swallow the newline after them.
     $js = fn (mixed $value): \Illuminate\Support\Js => \Illuminate\Support\Js::from($value);
 
+    $t = 'filament-media-library::filament-media-library';
+
     /** @var \Batustun\FilamentMediaLibrary\Models\Media $item */
     $kind = $item->kind_enum;
     $isSelected = in_array($item->id, $selected ?? [], true);
@@ -22,20 +24,47 @@
     draggable="true"
     x-on:dragstart="startDragging({!! $js($item->id) !!})"
     x-on:dragend="stopDragging()"
+    data-name="{{ $item->name }}"
+    data-kind="{{ $item->kind }}"
+    data-url="{{ $item->publicUrl() }}"
     x-on:click="pick({{ $loop->index }}, {!! $js($item->id) !!}, $event)"
-    x-on:keydown.enter.prevent="$wire.showDetail({!! $js($item->id) !!})"
+    x-on:dblclick.prevent="openPreviewAt({{ $loop->index }})"
+    x-on:keydown.enter.prevent="openPreviewAt({{ $loop->index }})"
     x-on:keydown.space.prevent="pick({{ $loop->index }}, {!! $js($item->id) !!}, $event)"
-    x-on:contextmenu.prevent="openDialog('context', { id: {!! $js($item->id) !!}, name: {!! $js($item->name) !!} })"
 >
     <span class="fml-card__check" aria-hidden="true">
         <x-filament::icon icon="heroicon-m-check" class="fml-icon-xs" />
     </span>
 
-    @if ($usage > 0)
-        <span class="fml-card__badge">
+    {{-- Clicking a card selects it, so anything else needs its own target. --}}
+    <div class="fml-card__tools">
+        @if ($usage > 0)
             <x-filament::badge color="gray" size="xs">{{ $usage }}</x-filament::badge>
-        </span>
-    @endif
+        @endif
+
+        {{-- Only the page has a detail panel to open. --}}
+        <button
+            type="button"
+            class="fml-card__tool"
+            x-show="mode === 'page'"
+            x-cloak
+            title="{{ __($t.'.actions.details') }}"
+            aria-label="{{ __($t.'.actions.details') }}"
+            x-on:click.stop="$wire.showDetail({!! $js($item->id) !!})"
+        >
+            <x-filament::icon icon="heroicon-m-information-circle" class="fml-icon-xs" />
+        </button>
+
+        <button
+            type="button"
+            class="fml-card__tool"
+            title="{{ __($t.'.actions.preview') }}"
+            aria-label="{{ __($t.'.actions.preview') }}"
+            x-on:click.stop="openPreviewAt({{ $loop->index }})"
+        >
+            <x-filament::icon icon="heroicon-m-magnifying-glass-plus" class="fml-icon-xs" />
+        </button>
+    </div>
 
     <div class="fml-card__thumb">
         @if ($item->isRenderableImage())

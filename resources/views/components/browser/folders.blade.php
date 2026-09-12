@@ -7,13 +7,37 @@
     $canManage = $this->canMedia('manage');
     $canDelete = $this->canMedia('delete');
     $canUpload = $this->canMedia('upload');
+
+    // The tree arrives flat and depth-first, so a folder has children exactly
+    // when the next row sits one level deeper.
+    $flat = $folders->values()->all();
+    $branches = [];
+
+    foreach ($flat as $i => $folder) {
+        $next = $flat[$i + 1] ?? null;
+
+        if ($next !== null && $next['depth'] > $folder['depth']) {
+            $branches[] = $folder['path'];
+        }
+    }
 @endphp
 
-<div class="fml-panel" x-data="{ open: false }">
+<div class="fml-panel fml-panel--folders" x-data="{ open: false }">
     <div class="fml-panel__header">
         <span class="fml-label">{{ __($t.'.fields.folders') }}</span>
 
         <div class="fml-row">
+            @if ($branches !== [])
+                <x-filament::icon-button
+                    icon="heroicon-m-chevron-up-down"
+                    color="gray"
+                    size="sm"
+                    x-on:click="toggleAllFolders({!! $js($branches) !!})"
+                    x-bind:aria-expanded="allFoldersOpen({!! $js($branches) !!}) ? 'true' : 'false'"
+                    :label="__($t.'.actions.toggle_folders')"
+                />
+            @endif
+
             @if ($canUpload)
                 <x-filament::icon-button
                     icon="heroicon-m-folder-plus"
@@ -48,24 +72,50 @@
                 x-on:drop.prevent="dropOnFolder('')"
                 x-bind:class="dropFolder === '' && draggingId ? 'fml-folder--drop-target' : ''"
             >
+                <span class="fml-folder__twist fml-folder__twist--leaf" aria-hidden="true"></span>
                 <x-filament::icon icon="heroicon-m-folder-open" class="fml-icon-sm" />
                 <span class="fml-folder__name">{{ __($t.'.fields.root') }}</span>
             </button>
         </li>
 
-        @foreach ($folders as $folder)
-            <li class="fml-folder-item">
+        @foreach ($flat as $folder)
+            @php
+                $path = $folder['path'];
+                $isBranch = in_array($path, $branches, true);
+                // Never hide the folder being browsed, or the way back up to it.
+                $onActivePath = $directory !== '' && str_starts_with($directory.'/', $path.'/');
+            @endphp
+
+            <li
+                class="fml-folder-item"
+                style="padding-inline-start: {{ $folder['depth'] * 0.75 }}rem"
+                x-show="isFolderVisible({!! $js($path) !!}, {{ $onActivePath ? 'true' : 'false' }})"
+            >
+                @if ($isBranch)
+                    <button
+                        type="button"
+                        class="fml-folder__twist"
+                        x-on:click.stop="toggleFolder({!! $js($path) !!})"
+                        x-bind:class="isFolderOpen({!! $js($path) !!}) ? 'fml-folder__twist--open' : ''"
+                        x-bind:aria-expanded="isFolderOpen({!! $js($path) !!}) ? 'true' : 'false'"
+                        aria-label="{{ __($t.'.actions.toggle_folders') }}"
+                    >
+                        <x-filament::icon icon="heroicon-m-chevron-right" class="fml-icon-xs" />
+                    </button>
+                @else
+                    <span class="fml-folder__twist fml-folder__twist--leaf" aria-hidden="true"></span>
+                @endif
+
                 <button
                     type="button"
                     class="fml-folder"
-                    aria-current="{{ $directory === $folder['path'] ? 'true' : 'false' }}"
-                    style="padding-inline-start: {{ ($folder['depth'] * 0.75) + 0.5 }}rem"
-                    title="{{ $folder['path'] }}"
-                    wire:click="selectFolder({!! $js($folder['path']) !!})"
-                    x-on:dragover.prevent="dropFolder = {!! $js($folder['path']) !!}"
+                    aria-current="{{ $directory === $path ? 'true' : 'false' }}"
+                    title="{{ $path }}"
+                    wire:click="selectFolder({!! $js($path) !!})"
+                    x-on:dragover.prevent="dropFolder = {!! $js($path) !!}"
                     x-on:dragleave="dropFolder = null"
-                    x-on:drop.prevent="dropOnFolder({!! $js($folder['path']) !!})"
-                    x-bind:class="dropFolder === {!! $js($folder['path']) !!} && draggingId ? 'fml-folder--drop-target' : ''"
+                    x-on:drop.prevent="dropOnFolder({!! $js($path) !!})"
+                    x-bind:class="dropFolder === {!! $js($path) !!} && draggingId ? 'fml-folder--drop-target' : ''"
                 >
                     <x-filament::icon icon="heroicon-m-folder" class="fml-icon-sm" />
                     <span class="fml-folder__name">{{ $folder['name'] }}</span>
@@ -86,7 +136,7 @@
                             @if ($canManage)
                                 <x-filament::dropdown.list.item
                                     icon="heroicon-m-pencil-square"
-                                    x-on:click="openDialog('rename-folder', { path: {!! $js($folder['path']) !!} }, {!! $js($folder['name']) !!})"
+                                    x-on:click="openDialog('rename-folder', { path: {!! $js($path) !!} }, {!! $js($folder['name']) !!})"
                                 >
                                     {{ __($t.'.actions.rename_folder') }}
                                 </x-filament::dropdown.list.item>
@@ -96,7 +146,7 @@
                                 <x-filament::dropdown.list.item
                                     icon="heroicon-m-trash"
                                     color="danger"
-                                    x-on:click="openDialog('delete-folder', { path: {!! $js($folder['path']) !!}, name: {!! $js($folder['name']) !!} })"
+                                    x-on:click="openDialog('delete-folder', { path: {!! $js($path) !!}, name: {!! $js($folder['name']) !!} })"
                                 >
                                     {{ __($t.'.actions.delete_folder') }}
                                 </x-filament::dropdown.list.item>

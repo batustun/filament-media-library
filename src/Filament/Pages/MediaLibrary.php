@@ -76,37 +76,6 @@ class MediaLibrary extends Page
         $this->bootInteractsWithMediaBrowser();
     }
 
-    public function uploadFiles(): void
-    {
-        $result = $this->performUpload(app(MediaService::class));
-
-        if ($result['stored'] === 0 && $result['reused'] === 0) {
-            return;
-        }
-
-        $notification = Notification::make()->success();
-
-        if ($result['stored'] > 0) {
-            $notification->title(trans_choice(
-                'filament-media-library::filament-media-library.messages.uploaded',
-                $result['stored'],
-                ['count' => $result['stored']],
-            ));
-        } else {
-            $notification->title(__('filament-media-library::filament-media-library.messages.all_reused'));
-        }
-
-        if ($result['reused'] > 0 && $result['stored'] > 0) {
-            $notification->body(trans_choice(
-                'filament-media-library::filament-media-library.messages.reused',
-                $result['reused'],
-                ['count' => $result['reused']],
-            ));
-        }
-
-        $notification->send();
-    }
-
     public function moveSelection(?string $directory): void
     {
         $moved = $this->performMoveSelection(app(MediaService::class), $directory);

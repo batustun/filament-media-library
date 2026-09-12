@@ -21,6 +21,17 @@ window.fmlBrowser = function ({ mode = 'page' } = {}) {
 
         dialog: null,
 
+        /** The file being shown full size, or null. */
+        preview: null,
+
+        /**
+         * Folder paths whose children are on show.
+         *
+         * The tree arrives flat and fully expanded, which buries the top level
+         * once a library has any depth; it starts closed and opens on demand.
+         */
+        expandedFolders: [],
+
         init() {
             this.$watch('dialog', (value) => {
                 if (! value) return
@@ -63,6 +74,87 @@ window.fmlBrowser = function ({ mode = 'page' } = {}) {
                 .map((node) => node.dataset.mediaId)
         },
 
+        // ------------------------------------------------------------- folders
+
+        isFolderOpen(path) {
+            return this.expandedFolders.includes(path)
+        },
+
+        /**
+         * A folder shows only while every one of its ancestors is open.
+         *
+         * `forced` covers the folder currently being browsed and its ancestors:
+         * the tree must never hide where you are standing.
+         */
+        isFolderVisible(path, forced = false) {
+            if (forced) return true
+
+            const segments = path.split('/')
+            segments.pop()
+
+            let ancestor = ''
+
+            for (const segment of segments) {
+                ancestor = ancestor ? `${ancestor}/${segment}` : segment
+
+                if (! this.expandedFolders.includes(ancestor)) return false
+            }
+
+            return true
+        },
+
+        toggleFolder(path) {
+            this.expandedFolders = this.isFolderOpen(path)
+                ? this.expandedFolders.filter((open) => open !== path)
+                : [...this.expandedFolders, path]
+        },
+
+        /** @param {string[]} paths every folder that has children */
+        allFoldersOpen(paths) {
+            return paths.length > 0 && paths.every((path) => this.expandedFolders.includes(path))
+        },
+
+        /** @param {string[]} paths every folder that has children */
+        toggleAllFolders(paths) {
+            this.expandedFolders = this.allFoldersOpen(paths) ? [] : [...paths]
+        },
+
+        // ------------------------------------------------------------ preview
+
+        /**
+         * Show one file at full size.
+         *
+         * Everything the overlay needs is already on the card as data
+         * attributes, so opening a preview costs no round trip and works the
+         * same in the page and the modal picker.
+         */
+        openPreviewAt(index) {
+            const card = this.cards()[index]
+
+            if (! card) return
+
+            this.preview = { ...card.dataset, index }
+
+            // Focus moves in so Escape closes the preview and not the modal
+            // the picker itself lives in.
+            this.$nextTick(() => this.$refs.lightbox?.focus())
+        },
+
+        /** Step through the files on screen without closing the overlay. */
+        movePreview(delta) {
+            if (! this.preview) return
+
+            const next = Number(this.preview.index) + delta
+
+            if (next < 0 || next >= this.cards().length) return
+
+            this.openPreviewAt(next)
+        },
+
+        closePreview() {
+            this.preview = null
+        },
+
         // ----------------------------------------------------------- keyboard
 
         cards() {
@@ -70,6 +162,13 @@ window.fmlBrowser = function ({ mode = 'page' } = {}) {
         },
 
         moveCursor(delta) {
+            // The preview owns the arrow keys while it is open.
+            if (this.preview) {
+                this.movePreview(delta > 0 ? 1 : -1)
+
+                return
+            }
+
             const cards = this.cards()
             if (! cards.length) return
 
@@ -182,8 +281,12 @@ window.fmlBrowser = function ({ mode = 'page' } = {}) {
  * the application cannot raise at runtime. Files above the configured threshold
  * are sliced here and reassembled server-side, so the cap stops mattering.
  */
-window.fmlChunkedUpload = function ({ endpoint, csrf, chunkSize, threshold, disk, directory }) {
+window.fmlUploader = function ({ endpoint, csrf, chunkSize, threshold, disk, directory, progressLabel, chunkLabel }) {
     return {
+        /** Percentage of the Livewire transfer in flight, null while idle. */
+        percent: null,
+
+        // Chunked transfer, for files too large to survive a single POST.
         busy: false,
         done: 0,
         total: 0,
@@ -191,6 +294,20 @@ window.fmlChunkedUpload = function ({ endpoint, csrf, chunkSize, threshold, disk
 
         shouldChunk(file) {
             return Boolean(endpoint) && file.size > threshold
+        },
+
+        /**
+         * One line describing whichever transfer is running, or null when idle.
+         *
+         * Both routes report through here so the dropzone has a single busy
+         * state instead of two overlays that can show at once.
+         */
+        busyLabel() {
+            if (this.busy) {
+                return chunkLabel.replace(':done', this.done).replace(':total', this.total)
+            }
+
+            return this.percent === null ? null : progressLabel.replace(':percent', this.percent)
         },
 
         /** Uploads one file; resolves with the created media payload. */
@@ -265,10 +382,13 @@ window.fmlChunkedUpload = function ({ endpoint, csrf, chunkSize, threshold, disk
             event.stopPropagation()
 
             const input = event.target
+            const ids = []
 
             try {
                 for (const file of oversized) {
-                    await this.upload(file)
+                    const media = await this.upload(file)
+
+                    if (media?.id) ids.push(media.id)
                 }
             } catch (error) {
                 return // upload() already put the reason in `error`.
@@ -276,7 +396,8 @@ window.fmlChunkedUpload = function ({ endpoint, csrf, chunkSize, threshold, disk
                 input.value = ''
             }
 
-            this.$wire.$refresh()
+            // Livewire never saw these, so the component is told explicitly.
+            this.$wire.adoptUploads(ids)
         },
     }
 }

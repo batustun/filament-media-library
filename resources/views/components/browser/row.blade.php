@@ -5,6 +5,8 @@
     // inside component-tag attributes, and they swallow the newline after them.
     $js = fn (mixed $value): \Illuminate\Support\Js => \Illuminate\Support\Js::from($value);
 
+    $t = 'filament-media-library::filament-media-library';
+
     /** @var \Batustun\FilamentMediaLibrary\Models\Media $item */
     $kind = $item->kind_enum;
     $isSelected = in_array($item->id, $selected ?? [], true);
@@ -13,7 +15,11 @@
 <tr
     data-media-id="{{ $item->id }}"
     aria-selected="{{ $isSelected ? 'true' : 'false' }}"
+    data-name="{{ $item->name }}"
+    data-kind="{{ $item->kind }}"
+    data-url="{{ $item->publicUrl() }}"
     x-on:click="pick({{ $loop->index }}, {!! $js($item->id) !!}, $event)"
+    x-on:dblclick.prevent="openPreviewAt({{ $loop->index }})"
 >
     <td class="fml-table__check" x-on:click.stop>
         <x-filament::input.checkbox
@@ -49,4 +55,13 @@
     <td class="fml-muted">{{ $item->human_size }}</td>
     <td class="fml-muted">{{ $item->directory ?: '/' }}</td>
     <td class="fml-muted">{{ $item->created_at?->translatedFormat('d M Y') }}</td>
+    <td class="fml-table__peek" x-on:click.stop>
+        <x-filament::icon-button
+            icon="heroicon-m-magnifying-glass-plus"
+            color="gray"
+            size="sm"
+            x-on:click="openPreviewAt({{ $loop->index }})"
+            :label="__($t.'.actions.preview')"
+        />
+    </td>
 </tr>
