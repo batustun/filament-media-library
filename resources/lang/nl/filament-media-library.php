@@ -114,6 +114,7 @@ return [
     ],
 
     'messages' => [
+        'selection_failed' => 'De selectie kon niet in het veld worden gezet',
         'reused_hint' => 'Het is hieronder geselecteerd — er is geen tweede kopie opgeslagen.',
         'preview_truncated' => 'Alleen het eerste deel van dit bestand wordt getoond',
         'duplicated' => 'Gedupliceerd',

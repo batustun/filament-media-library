@@ -114,6 +114,7 @@ return [
     ],
 
     'messages' => [
+        'selection_failed' => 'No se pudo insertar la selección en el campo',
         'reused_hint' => 'Está seleccionado abajo: no se guardó una segunda copia.',
         'preview_truncated' => 'Se muestra solo la primera parte de este archivo',
         'duplicated' => 'Duplicado',

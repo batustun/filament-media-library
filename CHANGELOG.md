@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.5.1] - 2026-09-12
+
+### Fixed
+- Choosing a file could do nothing at all. The bridge that writes the selection
+  into the form field looked the component up by hand — `Livewire.find()` on a
+  `wire:id` it walked the DOM for — and when that lookup missed it returned
+  without a word. It now uses `$wire`, Livewire's supported handle on the
+  closest component, and any failure raises a notification saying what went
+  wrong instead of leaving the button looking dead.
+
 ## [1.5.0] - 2026-09-12
 
 ### Added
@@ -256,7 +266,8 @@ First public release.
 - English, Turkish, German, French, Spanish, Italian, Dutch, Brazilian
   Portuguese, Russian and Arabic. RTL works without extra rules.
 
-[Unreleased]: https://github.com/batustun/filament-media-library/compare/v1.5.0...HEAD
+[Unreleased]: https://github.com/batustun/filament-media-library/compare/v1.5.1...HEAD
+[1.5.1]: https://github.com/batustun/filament-media-library/compare/v1.5.0...v1.5.1
 [1.5.0]: https://github.com/batustun/filament-media-library/compare/v1.4.4...v1.5.0
 [1.4.4]: https://github.com/batustun/filament-media-library/compare/v1.4.3...v1.4.4
 [1.4.3]: https://github.com/batustun/filament-media-library/compare/v1.4.2...v1.4.3

@@ -114,6 +114,7 @@ return [
     ],
 
     'messages' => [
+        'selection_failed' => 'Seçim alana aktarılamadı',
         'reused_hint' => 'Aşağıda seçili — ikinci bir kopya oluşturulmadı.',
         'preview_truncated' => 'Bu dosyanın yalnızca ilk kısmı gösteriliyor',
         'duplicated' => 'Çoğaltıldı',

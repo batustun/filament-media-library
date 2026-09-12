@@ -5,55 +5,95 @@
     /** @var array<int, string> $kinds */
     /** @var string $statePath */
     /** @var string $returns */
+
+    $t = 'filament-media-library::filament-media-library';
 @endphp
 
+{{--
+    Bridges the picker to the form field it was opened from.
+
+    The picker is a nested Livewire component, so it cannot write to the field
+    directly; it dispatches, and this listener — which lives inside the FIELD's
+    component — does the writing through $wire, Livewire's supported handle on
+    the closest component. Reaching for Livewire.find() and a wire:id lookup
+    was one assumption too many, and when it missed, it missed in silence.
+--}}
 <div
     x-data="{
-        init () {
-            window.addEventListener('filament-media-library:picked', (event) => {
-                if (event.detail?.statePath !== @js($statePath)) return
+        write (event) {
+            if (event.detail?.statePath !== @js($statePath)) return
 
-                const returns = @js($returns)
-                const items = event.detail.items || []
-                const values = items
-                    .map((item) => returns === 'id' ? item.id : (returns === 'path' ? item.path : item.url))
-                    .filter(Boolean)
+            const returns = @js($returns)
+            const values = (event.detail.items || [])
+                .map((item) => returns === 'id' ? item.id : (returns === 'path' ? item.path : item.url))
+                .filter(Boolean)
 
-                if (! values.length) return
+            if (! values.length) {
+                this.fail('the library returned nothing to insert')
 
-                const livewireEl = $el.closest('[wire\\:id]')
-                const component = livewireEl ? window.Livewire.find(livewireEl.getAttribute('wire:id')) : null
-                if (! component) return
+                return
+            }
 
-                // FileUpload stores raw state as a UUID-keyed object; a plain
-                // string or an indexed array breaks getRawState() on the next
-                // Livewire round trip.
-                const uuid = () => (crypto.randomUUID
-                    ? crypto.randomUUID()
-                    : 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => {
-                        const r = (Math.random() * 16) | 0
-                        return (c === 'x' ? r : (r & 0x3) | 0x8).toString(16)
-                    }))
+            if (typeof $wire === 'undefined' || $wire === null) {
+                this.fail('the form component could not be reached')
 
-                const keyed = (vals) => Object.fromEntries(vals.map((value) => [uuid(), value]))
+                return
+            }
 
+            // FileUpload stores raw state as a UUID-keyed object; a plain
+            // string or an indexed array breaks getRawState() on the next
+            // Livewire round trip.
+            const uuid = () => (crypto.randomUUID
+                ? crypto.randomUUID()
+                : 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => {
+                    const r = (Math.random() * 16) | 0
+                    return (c === 'x' ? r : (r & 0x3) | 0x8).toString(16)
+                }))
+
+            const keyed = (vals) => Object.fromEntries(vals.map((value) => [uuid(), value]))
+
+            try {
                 if (@js($multiple)) {
-                    const current = component.get(@js($statePath))
-                    const isKeyedObject = current && typeof current === 'object' && ! Array.isArray(current)
+                    const current = $wire.get(@js($statePath))
+                    const isKeyed = current && typeof current === 'object' && ! Array.isArray(current)
 
-                    component.set(@js($statePath), isKeyedObject
-                        ? { ...current, ...keyed(values) }
-                        : keyed(values))
+                    $wire.set(@js($statePath), isKeyed ? { ...current, ...keyed(values) } : keyed(values))
                 } else {
-                    component.set(@js($statePath), keyed([values[0]]))
+                    $wire.set(@js($statePath), keyed([values[0]]))
                 }
+            } catch (error) {
+                this.fail(error.message)
 
-                if (typeof component.call === 'function') {
-                    component.call('unmountAction')
-                }
-            })
+                return
+            }
+
+            // Close the action modal the picker was opened from. Optional: the
+            // field is already filled, so a failure here must not look like the
+            // selection failed.
+            try {
+                $wire.unmountAction()
+            } catch (error) {
+                //
+            }
+        },
+
+        /** Never fail quietly: a picker that does nothing is unexplainable. */
+        fail (reason) {
+            console.error('[filament-media-library] could not insert the selection:', reason)
+
+            window.dispatchEvent(new CustomEvent('filament-media-library:failed', {
+                detail: { reason },
+            }))
         },
     }"
+    x-on:filament-media-library:picked.window="write($event)"
+    x-on:filament-media-library:failed.window="
+        new FilamentNotification()
+            .title(@js(__($t.'.messages.selection_failed')))
+            .body($event.detail.reason)
+            .danger()
+            .send()
+    "
 >
     @livewire('filament-media-library-picker', [
         'multiple' => $multiple,

@@ -114,6 +114,7 @@ return [
     ],
 
     'messages' => [
+        'selection_failed' => 'Die Auswahl konnte nicht in das Feld übernommen werden',
         'reused_hint' => 'Sie ist unten ausgewählt – es wurde keine zweite Kopie gespeichert.',
         'preview_truncated' => 'Es wird nur der erste Teil dieser Datei angezeigt',
         'duplicated' => 'Dupliziert',
