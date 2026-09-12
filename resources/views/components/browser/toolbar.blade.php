@@ -1,6 +1,10 @@
 @php
     use Batustun\FilamentMediaLibrary\Enums\MediaKind;
 
+    // A raw echo rather than the @js directive: directives are not compiled
+    // inside component-tag attributes, and they swallow the newline after them.
+    $js = fn (mixed $value): \Illuminate\Support\Js => \Illuminate\Support\Js::from($value);
+
     $t = 'filament-media-library::filament-media-library';
     $selectedCount = count($selected);
 @endphp
@@ -147,7 +151,7 @@
                     size="sm"
                     color="gray"
                     icon="heroicon-m-folder-arrow-down"
-                    x-on:click="openDialog('move-selection', {}, @js($directory))"
+                    x-on:click="openDialog('move-selection', {}, {!! $js($directory) !!})"
                 >
                     {{ __($t.'.actions.move') }}
                 </x-filament::button>

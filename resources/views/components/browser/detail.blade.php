@@ -1,6 +1,10 @@
 @php
     use Batustun\FilamentMediaLibrary\Enums\MediaKind;
 
+    // A raw echo rather than the @js directive: directives are not compiled
+    // inside component-tag attributes, and they swallow the newline after them.
+    $js = fn (mixed $value): \Illuminate\Support\Js => \Illuminate\Support\Js::from($value);
+
     /** @var \Batustun\FilamentMediaLibrary\Models\Media $item */
     $t = 'filament-media-library::filament-media-library';
     $kind = $item->kind_enum;
@@ -17,13 +21,13 @@
     class="fml-detail"
     wire:key="fml-detail-{{ $item->id }}"
     x-data="{
-        title: @js($item->title ?? ''),
-        alt: @js($item->alt ?? ''),
-        description: @js($item->description ?? ''),
-        tags: @js(implode(', ', $item->tagNames())),
-        custom: @js((object) $item->customMeta()),
+        title: {!! $js($item->title ?? '') !!},
+        alt: {!! $js($item->alt ?? '') !!},
+        description: {!! $js($item->description ?? '') !!},
+        tags: {!! $js(implode(', ', $item->tagNames())) !!},
+        custom: {!! $js((object) $item->customMeta()) !!},
         save () {
-            this.$wire.updateMeta(@js($item->id), {
+            this.$wire.updateMeta({!! $js($item->id) !!}, {
                 title: this.title,
                 alt: this.alt,
                 description: this.description,
@@ -31,7 +35,7 @@
             })
 
             @if ($tagsEnabled)
-                this.$wire.syncTags(@js($item->id), this.tags.split(',').map((t) => t.trim()).filter(Boolean))
+                this.$wire.syncTags({!! $js($item->id) !!}, this.tags.split(',').map((t) => t.trim()).filter(Boolean))
             @endif
         },
     }"
@@ -60,8 +64,8 @@
                 class="fml-preview"
                 @if (in_array($strategy = $item->previewStrategy(), ['text', 'archive'], true))
                     x-data="fmlFilePreview({
-                        endpoint: @js(route('filament-media-library.preview.'.($strategy === 'text' ? 'text' : 'archive'), $item->id)),
-                        kind: @js($strategy),
+                        endpoint: {!! $js(route('filament-media-library.preview.'.($strategy === 'text' ? 'text' : 'archive'), $item->id)) !!},
+                        kind: {!! $js($strategy) !!},
                     })"
                     x-init="load()"
                 @endif
@@ -347,7 +351,7 @@
                 size="sm"
                 color="gray"
                 icon="heroicon-m-pencil-square"
-                x-on:click="openDialog('rename-media', { id: @js($item->id) }, @js($item->name))"
+                x-on:click="openDialog('rename-media', { id: {!! $js($item->id) !!} }, {!! $js($item->name) !!})"
             >
                 {{ __($t.'.actions.rename') }}
             </x-filament::button>
@@ -355,10 +359,10 @@
             @if ($canManage && $kind === MediaKind::Image && $item->isEditableImage() && Route::has('filament-media-library.image-edit'))
                 <div
                     x-data="fmlImageEditor({
-                        src: @js($url),
-                        endpoint: @js(route('filament-media-library.image-edit', $item->id)),
-                        csrf: @js(csrf_token()),
-                        mime: @js($item->mime_type),
+                        src: {!! $js($url) !!},
+                        endpoint: {!! $js(route('filament-media-library.image-edit', $item->id)) !!},
+                        csrf: {!! $js(csrf_token()) !!},
+                        mime: {!! $js($item->mime_type) !!},
                     })"
                 >
                     <x-filament::button
@@ -416,7 +420,7 @@
                     size="sm"
                     color="gray"
                     icon="heroicon-m-document-duplicate"
-                    wire:click="duplicateOne(@js($item->id))"
+                    wire:click="duplicateOne({!! $js($item->id) !!})"
                 >
                     {{ __($t.'.actions.duplicate') }}
                 </x-filament::button>
@@ -430,7 +434,7 @@
                     type="file"
                     class="fml-sr-only"
                     wire:model="uploads"
-                    x-on:change="$nextTick(() => $wire.replaceFile(@js($item->id)))"
+                    x-on:change="$nextTick(() => $wire.replaceFile({!! $js($item->id) !!}))"
                 />
             </label>
             <p class="fml-hint fml-muted">{{ __($t.'.messages.replace_hint') }}</p>
@@ -452,7 +456,7 @@
                     size="sm"
                     color="danger"
                     icon="heroicon-m-trash"
-                    wire:click="deleteOne(@js($item->id))"
+                    wire:click="deleteOne({!! $js($item->id) !!})"
                     wire:confirm="{{ __($t.'.messages.confirm_delete', ['name' => $item->name]) }}"
                 >
                     {{ __($t.'.actions.delete') }}

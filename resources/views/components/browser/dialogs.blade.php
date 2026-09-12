@@ -1,4 +1,8 @@
 @php
+    // A raw echo rather than the @js directive: directives are not compiled
+    // inside component-tag attributes, and they swallow the newline after them.
+    $js = fn (mixed $value): \Illuminate\Support\Js => \Illuminate\Support\Js::from($value);
+
     $t = 'filament-media-library::filament-media-library';
 @endphp
 
@@ -62,14 +66,14 @@
         <template x-if="dialog && dialog.kind === 'delete-media'">
             <div class="fml-modal__body">
                 <h3 class="fml-modal__title fml-danger">{{ __($t.'.actions.delete') }}</h3>
-                <p class="fml-modal__desc" x-text="@js(__($t.'.messages.confirm_delete', ['name' => ':name'])).replace(':name', dialog.payload.name)"></p>
+                <p class="fml-modal__desc" x-text="{!! $js(__($t.'.messages.confirm_delete', ['name' => ':name'])) !!}.replace(':name', dialog.payload.name)"></p>
             </div>
         </template>
 
         <template x-if="dialog && dialog.kind === 'delete-folder'">
             <div class="fml-modal__body">
                 <h3 class="fml-modal__title fml-danger">{{ __($t.'.actions.delete_folder') }}</h3>
-                <p class="fml-modal__desc" x-text="@js(__($t.'.messages.confirm_delete_folder', ['name' => ':name'])).replace(':name', dialog.payload.name)"></p>
+                <p class="fml-modal__desc" x-text="{!! $js(__($t.'.messages.confirm_delete_folder', ['name' => ':name'])) !!}.replace(':name', dialog.payload.name)"></p>
             </div>
         </template>
 
@@ -85,8 +89,8 @@
                 x-bind:disabled="dialog && ! dialog.kind.startsWith('delete') && ! String(dialog.value ?? '').trim() && dialog.kind !== 'move-selection'"
             >
                 <span x-text="dialog && dialog.kind.startsWith('delete')
-                    ? @js(__($t.'.actions.confirm_delete'))
-                    : @js(__($t.'.actions.save'))"></span>
+                    ? {!! $js(__($t.'.actions.confirm_delete')) !!}
+                    : {!! $js(__($t.'.actions.save')) !!}"></span>
             </x-filament::button>
         </div>
     </div>

@@ -446,9 +446,20 @@ final class MediaLibraryConfig
         return in_array($type, ['id', 'uuid', 'ulid'], true) ? $type : 'id';
     }
 
+    /**
+     * Falls back to the application's own auth model rather than assuming
+     * App\Models\User: an app that renamed or moved its user model would
+     * otherwise fatal the moment someone opened a file's detail pane.
+     */
     public static function userModel(): string
     {
-        return (string) self::get('user_model', 'App\\Models\\User');
+        foreach ([self::get('user_model'), config('auth.providers.users.model')] as $candidate) {
+            if (is_string($candidate) && $candidate !== '') {
+                return $candidate;
+            }
+        }
+
+        return 'App\\Models\\User';
     }
 
     /**

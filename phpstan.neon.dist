@@ -46,3 +46,4 @@ parameters:
             paths:
                 - src/Livewire/MediaPicker.php
                 - src/Filament/Components/LibraryPickerAction.php
+                - tests/Feature/BladeRenderingTest.php

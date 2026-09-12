@@ -1,4 +1,8 @@
 @php
+    // A raw echo rather than the @js directive: directives are not compiled
+    // inside component-tag attributes, and they swallow the newline after them.
+    $js = fn (mixed $value): \Illuminate\Support\Js => \Illuminate\Support\Js::from($value);
+
     $t = 'filament-media-library::filament-media-library';
     $isFiltered = $this->hasFilters();
     // Folders are only meaningful while browsing; a filtered search is a search
@@ -16,7 +20,7 @@
                 <button
                     type="button"
                     class="fml-folder-card"
-                    wire:click="selectFolder(@js($folder['path']))"
+                    wire:click="selectFolder({!! $js($folder['path']) !!})"
                     title="{{ $folder['path'] }}"
                 >
                     <x-filament::icon icon="heroicon-o-folder" class="fml-icon-lg" />

@@ -246,6 +246,131 @@ window.fmlChunkedUpload = function ({ endpoint, csrf, chunkSize, threshold, disk
                 this.busy = false
             }
         },
+
+        /**
+         * Takes the oversized files off the file input before Livewire's own
+         * uploader sees them.
+         *
+         * This lives here rather than inline in the markup because Alpine only
+         * wraps an inline expression in a function body when it *starts* with
+         * `if`, `let` or `const` — a leading comment defeats that check and the
+         * whole handler dies with a syntax error.
+         */
+        async interceptChange(event) {
+            const oversized = Array.from(event.target.files ?? []).filter((file) => this.shouldChunk(file))
+
+            if (! oversized.length) return
+
+            // Runs before the first await, so it still stops the capture phase.
+            event.stopPropagation()
+
+            const input = event.target
+
+            try {
+                for (const file of oversized) {
+                    await this.upload(file)
+                }
+            } catch (error) {
+                return // upload() already put the reason in `error`.
+            } finally {
+                input.value = ''
+            }
+
+            this.$wire.$refresh()
+        },
+    }
+}
+
+/**
+ * Bridges the picker's selection into the form field it was opened from.
+ *
+ * The picker is a nested Livewire component and cannot reach the field, so it
+ * dispatches on the window; this bridge is rendered inside the FIELD's own
+ * component and writes through $wire — Livewire's supported handle on the
+ * closest component. Hand-resolving it from a wire:id lookup was one
+ * assumption too many, and when it missed, it missed in silence.
+ */
+window.fmlPickerBridge = function ({ statePath, returns, multiple, failureTitle }) {
+    const uuid = () => (crypto.randomUUID
+        ? crypto.randomUUID()
+        : 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => {
+            const r = (Math.random() * 16) | 0
+            return (c === 'x' ? r : (r & 0x3) | 0x8).toString(16)
+        }))
+
+    // FileUpload keeps its raw state as a UUID-keyed object; a plain string or
+    // an indexed array breaks getRawState() on the next Livewire round trip.
+    const keyed = (values) => Object.fromEntries(values.map((value) => [uuid(), value]))
+
+    const read = (item) => {
+        if (returns === 'id') return item.id
+
+        return returns === 'path' ? item.path : item.url
+    }
+
+    return {
+        write(event) {
+            if (event.detail?.statePath !== statePath) return
+
+            const values = (event.detail.items || []).map(read).filter(Boolean)
+
+            if (! values.length) {
+                this.fail('the library returned nothing to insert')
+
+                return
+            }
+
+            if (typeof this.$wire === 'undefined' || this.$wire === null) {
+                this.fail('the form component could not be reached')
+
+                return
+            }
+
+            try {
+                this.$wire.set(statePath, multiple
+                    ? { ...this.existing(), ...keyed(values) }
+                    : keyed([values[0]]))
+            } catch (error) {
+                this.fail(error.message)
+
+                return
+            }
+
+            // Close the action modal the picker was opened from. The field is
+            // already filled, so a failure here must not read as a failed pick.
+            try {
+                this.$wire.unmountAction()
+            } catch (error) {
+                //
+            }
+        },
+
+        /** Whatever the field already holds, but only if it is safe to spread. */
+        existing() {
+            const current = this.$wire.get(statePath)
+
+            return current && typeof current === 'object' && ! Array.isArray(current) ? current : {}
+        },
+
+        /** Never fail quietly: a picker that does nothing is unexplainable. */
+        fail(reason) {
+            console.error('[filament-media-library] could not insert the selection:', reason)
+
+            window.dispatchEvent(new CustomEvent('filament-media-library:failed', {
+                detail: { statePath, reason },
+            }))
+        },
+
+        /** Only the field that failed says so — a page may hold several. */
+        notifyFailure(event) {
+            if (event.detail?.statePath !== statePath) return
+
+            new FilamentNotification()
+                .title(failureTitle)
+                .body(event.detail.reason)
+                .danger()
+                .send()
+        },
     }
 }
 

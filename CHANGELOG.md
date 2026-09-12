@@ -7,6 +7,52 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.5.2] - 2026-09-12
+
+### Fixed
+- The browser's JavaScript never ran. Four separate mistakes in the markup each
+  produced a syntax error in the browser and nothing anywhere else — the page
+  rendered, every test passed, and clicking did nothing:
+  - A Blade directive written inside a *component tag* attribute is never
+    compiled. Blade compiles component tags first, lifting each attribute into
+    a PHP string, so `@js(...)` reached the browser as literal text and the
+    handler died on the `@`. This broke renaming, deleting and moving folders,
+    the move-selection and rename-file actions, and the row checkbox.
+  - A directive also swallows the newline that follows it — Blade pads that
+    whitespace for echoes but not for directives — which ran two JavaScript
+    statements together into one line. This is what actually killed 1.5.1's
+    picker bridge: the fix was right, but `const returns = 'path'` and the line
+    after it collapsed into a syntax error, so the handler was never defined.
+  - Alpine only wraps an inline expression in a function body when it *begins*
+    with `if`, `let` or `const`. The chunked uploader's handler began with a
+    comment, so its `const` was a syntax error and large uploads never sliced.
+  - The same handler called `$wire.\$refresh()`; the backslash was a PHP
+    escaping habit and is a syntax error in JavaScript.
+  Because Alpine aborts the rest of the tree when a directive throws during
+  initialisation, any one of these also took out every component after it —
+  which is why the folder dialogs would not open.
+- `user_model` now follows `config('auth.providers.users.model')` when it is not
+  set explicitly, instead of assuming `App\Models\User`. An application that
+  renamed or moved its user model fataled when a file's detail pane was opened.
+
+### Changed
+- The picker-to-field bridge moved out of the markup and into
+  `window.fmlPickerBridge`, and the chunked uploader's change handler into
+  `interceptChange()`. Logic in an `x-data` attribute is compiled in the
+  browser, where PHP cannot see it fail.
+
+### Added
+- `BladeRenderingTest` renders every view the package ships — the picker in both
+  layouts, the library page, and the field bridge — then asserts no Blade
+  directive survived uncompiled and parses every Alpine expression with Node,
+  wrapping each one the way Alpine does. Three lints back it up: no directive
+  inside a component tag, no `@js` in a view, and a check that every shipped
+  view is actually reached by a test. All four bugs above fail these tests.
+- The test suite can now render Livewire components. It never could before
+  because Filament's `SupportServiceProvider` rebinds Livewire's `DataStore` to
+  a subclass with a non-shared binding; registering Livewire after Filament —
+  the order a real application gets — restores the singleton.
+
 ## [1.5.1] - 2026-09-12
 
 ### Fixed
@@ -266,7 +312,8 @@ First public release.
 - English, Turkish, German, French, Spanish, Italian, Dutch, Brazilian
   Portuguese, Russian and Arabic. RTL works without extra rules.
 
-[Unreleased]: https://github.com/batustun/filament-media-library/compare/v1.5.1...HEAD
+[Unreleased]: https://github.com/batustun/filament-media-library/compare/v1.5.2...HEAD
+[1.5.2]: https://github.com/batustun/filament-media-library/compare/v1.5.1...v1.5.2
 [1.5.1]: https://github.com/batustun/filament-media-library/compare/v1.5.0...v1.5.1
 [1.5.0]: https://github.com/batustun/filament-media-library/compare/v1.4.4...v1.5.0
 [1.4.4]: https://github.com/batustun/filament-media-library/compare/v1.4.3...v1.4.4

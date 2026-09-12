@@ -1,4 +1,8 @@
 @php
+    // A raw echo rather than the @js directive: directives are not compiled
+    // inside component-tag attributes, and they swallow the newline after them.
+    $js = fn (mixed $value): \Illuminate\Support\Js => \Illuminate\Support\Js::from($value);
+
     $t = 'filament-media-library::filament-media-library';
     $canManage = $this->canMedia('manage');
     $canDelete = $this->canMedia('delete');
@@ -57,11 +61,11 @@
                     aria-current="{{ $directory === $folder['path'] ? 'true' : 'false' }}"
                     style="padding-inline-start: {{ ($folder['depth'] * 0.75) + 0.5 }}rem"
                     title="{{ $folder['path'] }}"
-                    wire:click="selectFolder(@js($folder['path']))"
-                    x-on:dragover.prevent="dropFolder = @js($folder['path'])"
+                    wire:click="selectFolder({!! $js($folder['path']) !!})"
+                    x-on:dragover.prevent="dropFolder = {!! $js($folder['path']) !!}"
                     x-on:dragleave="dropFolder = null"
-                    x-on:drop.prevent="dropOnFolder(@js($folder['path']))"
-                    x-bind:class="dropFolder === @js($folder['path']) && draggingId ? 'fml-folder--drop-target' : ''"
+                    x-on:drop.prevent="dropOnFolder({!! $js($folder['path']) !!})"
+                    x-bind:class="dropFolder === {!! $js($folder['path']) !!} && draggingId ? 'fml-folder--drop-target' : ''"
                 >
                     <x-filament::icon icon="heroicon-m-folder" class="fml-icon-sm" />
                     <span class="fml-folder__name">{{ $folder['name'] }}</span>
@@ -82,7 +86,7 @@
                             @if ($canManage)
                                 <x-filament::dropdown.list.item
                                     icon="heroicon-m-pencil-square"
-                                    x-on:click="openDialog('rename-folder', { path: @js($folder['path']) }, @js($folder['name']))"
+                                    x-on:click="openDialog('rename-folder', { path: {!! $js($folder['path']) !!} }, {!! $js($folder['name']) !!})"
                                 >
                                     {{ __($t.'.actions.rename_folder') }}
                                 </x-filament::dropdown.list.item>
@@ -92,7 +96,7 @@
                                 <x-filament::dropdown.list.item
                                     icon="heroicon-m-trash"
                                     color="danger"
-                                    x-on:click="openDialog('delete-folder', { path: @js($folder['path']), name: @js($folder['name']) })"
+                                    x-on:click="openDialog('delete-folder', { path: {!! $js($folder['path']) !!}, name: {!! $js($folder['name']) !!} })"
                                 >
                                     {{ __($t.'.actions.delete_folder') }}
                                 </x-filament::dropdown.list.item>

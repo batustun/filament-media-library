@@ -13,9 +13,7 @@ use Illuminate\Support\Facades\Storage;
 /**
  * Exercises the browser's query and state logic directly.
  *
- * Blade rendering is covered by the consuming application's suite: Testbench's
- * minimal kernel cannot render a Livewire component here (its validation
- * support reads a shared error bag that only real middleware provides).
+ * The markup these methods drive is rendered and parsed in BladeRenderingTest.
  */
 function browser(): object
 {

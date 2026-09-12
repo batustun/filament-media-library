@@ -1,6 +1,10 @@
 @php
     use Batustun\FilamentMediaLibrary\Enums\MediaKind;
 
+    // A raw echo rather than the @js directive: directives are not compiled
+    // inside component-tag attributes, and they swallow the newline after them.
+    $js = fn (mixed $value): \Illuminate\Support\Js => \Illuminate\Support\Js::from($value);
+
     /** @var \Batustun\FilamentMediaLibrary\Models\Media $item */
     $kind = $item->kind_enum;
     $isSelected = in_array($item->id, $selected ?? [], true);
@@ -9,12 +13,12 @@
 <tr
     data-media-id="{{ $item->id }}"
     aria-selected="{{ $isSelected ? 'true' : 'false' }}"
-    x-on:click="pick({{ $loop->index }}, @js($item->id), $event)"
+    x-on:click="pick({{ $loop->index }}, {!! $js($item->id) !!}, $event)"
 >
     <td class="fml-table__check" x-on:click.stop>
         <x-filament::input.checkbox
             :checked="$isSelected"
-            wire:click="toggleSelect(@js($item->id))"
+            wire:click="toggleSelect({!! $js($item->id) !!})"
             :aria-label="$item->name"
         />
     </td>

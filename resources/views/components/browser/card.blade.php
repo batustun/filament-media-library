@@ -1,6 +1,10 @@
 @php
     use Batustun\FilamentMediaLibrary\Enums\MediaKind;
 
+    // A raw echo rather than the @js directive: directives are not compiled
+    // inside component-tag attributes, and they swallow the newline after them.
+    $js = fn (mixed $value): \Illuminate\Support\Js => \Illuminate\Support\Js::from($value);
+
     /** @var \Batustun\FilamentMediaLibrary\Models\Media $item */
     $kind = $item->kind_enum;
     $isSelected = in_array($item->id, $selected ?? [], true);
@@ -16,12 +20,12 @@
     aria-label="{{ $item->name }}"
     class="fml-card"
     draggable="true"
-    x-on:dragstart="startDragging(@js($item->id))"
+    x-on:dragstart="startDragging({!! $js($item->id) !!})"
     x-on:dragend="stopDragging()"
-    x-on:click="pick({{ $loop->index }}, @js($item->id), $event)"
-    x-on:keydown.enter.prevent="$wire.showDetail(@js($item->id))"
-    x-on:keydown.space.prevent="pick({{ $loop->index }}, @js($item->id), $event)"
-    x-on:contextmenu.prevent="openDialog('context', { id: @js($item->id), name: @js($item->name) })"
+    x-on:click="pick({{ $loop->index }}, {!! $js($item->id) !!}, $event)"
+    x-on:keydown.enter.prevent="$wire.showDetail({!! $js($item->id) !!})"
+    x-on:keydown.space.prevent="pick({{ $loop->index }}, {!! $js($item->id) !!}, $event)"
+    x-on:contextmenu.prevent="openDialog('context', { id: {!! $js($item->id) !!}, name: {!! $js($item->name) !!} })"
 >
     <span class="fml-card__check" aria-hidden="true">
         <x-filament::icon icon="heroicon-m-check" class="fml-icon-xs" />

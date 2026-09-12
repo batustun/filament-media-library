@@ -477,10 +477,12 @@ return [
     |--------------------------------------------------------------------------
     |
     | Class name string (not ::class) so the package never assumes the host
-    | application defines App\Models\User.
+    | application defines App\Models\User. Left unset it follows
+    | config('auth.providers.users.model'), which is where an app that renamed
+    | its user model has already said so.
     |
     */
-    'user_model' => env('AUTH_MODEL', 'App\\Models\\User'),
+    'user_model' => env('AUTH_MODEL'),
 
     /*
     |--------------------------------------------------------------------------

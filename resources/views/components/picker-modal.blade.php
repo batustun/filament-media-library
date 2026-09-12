@@ -1,4 +1,8 @@
 @php
+    // A raw echo rather than the @js directive: directives are not compiled
+    // inside component-tag attributes, and they swallow the newline after them.
+    $js = fn (mixed $value): \Illuminate\Support\Js => \Illuminate\Support\Js::from($value);
+
     /** @var bool $multiple */
     /** @var string $disk */
     /** @var string $directory */
@@ -10,90 +14,19 @@
 @endphp
 
 {{--
-    Bridges the picker to the form field it was opened from.
-
-    The picker is a nested Livewire component, so it cannot write to the field
-    directly; it dispatches, and this listener — which lives inside the FIELD's
-    component — does the writing through $wire, Livewire's supported handle on
-    the closest component. Reaching for Livewire.find() and a wire:id lookup
-    was one assumption too many, and when it missed, it missed in silence.
+    The bridge itself lives in the package's JavaScript. Alpine expressions are
+    compiled in the browser, so a mistake in one is invisible to PHP: the page
+    renders, the tests pass, and the button does nothing.
 --}}
 <div
-    x-data="{
-        write (event) {
-            if (event.detail?.statePath !== @js($statePath)) return
-
-            const returns = @js($returns)
-            const values = (event.detail.items || [])
-                .map((item) => returns === 'id' ? item.id : (returns === 'path' ? item.path : item.url))
-                .filter(Boolean)
-
-            if (! values.length) {
-                this.fail('the library returned nothing to insert')
-
-                return
-            }
-
-            if (typeof $wire === 'undefined' || $wire === null) {
-                this.fail('the form component could not be reached')
-
-                return
-            }
-
-            // FileUpload stores raw state as a UUID-keyed object; a plain
-            // string or an indexed array breaks getRawState() on the next
-            // Livewire round trip.
-            const uuid = () => (crypto.randomUUID
-                ? crypto.randomUUID()
-                : 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => {
-                    const r = (Math.random() * 16) | 0
-                    return (c === 'x' ? r : (r & 0x3) | 0x8).toString(16)
-                }))
-
-            const keyed = (vals) => Object.fromEntries(vals.map((value) => [uuid(), value]))
-
-            try {
-                if (@js($multiple)) {
-                    const current = $wire.get(@js($statePath))
-                    const isKeyed = current && typeof current === 'object' && ! Array.isArray(current)
-
-                    $wire.set(@js($statePath), isKeyed ? { ...current, ...keyed(values) } : keyed(values))
-                } else {
-                    $wire.set(@js($statePath), keyed([values[0]]))
-                }
-            } catch (error) {
-                this.fail(error.message)
-
-                return
-            }
-
-            // Close the action modal the picker was opened from. Optional: the
-            // field is already filled, so a failure here must not look like the
-            // selection failed.
-            try {
-                $wire.unmountAction()
-            } catch (error) {
-                //
-            }
-        },
-
-        /** Never fail quietly: a picker that does nothing is unexplainable. */
-        fail (reason) {
-            console.error('[filament-media-library] could not insert the selection:', reason)
-
-            window.dispatchEvent(new CustomEvent('filament-media-library:failed', {
-                detail: { reason },
-            }))
-        },
-    }"
+    x-data="fmlPickerBridge({
+        statePath: {!! $js($statePath) !!},
+        returns: {!! $js($returns) !!},
+        multiple: {!! $js($multiple) !!},
+        failureTitle: {!! $js(__($t.'.messages.selection_failed')) !!},
+    })"
     x-on:filament-media-library:picked.window="write($event)"
-    x-on:filament-media-library:failed.window="
-        new FilamentNotification()
-            .title(@js(__($t.'.messages.selection_failed')))
-            .body($event.detail.reason)
-            .danger()
-            .send()
-    "
+    x-on:filament-media-library:failed.window="notifyFailure($event)"
 >
     @livewire('filament-media-library-picker', [
         'multiple' => $multiple,

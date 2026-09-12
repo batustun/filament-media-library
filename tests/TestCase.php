@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Batustun\FilamentMediaLibrary\Tests;
 
 use Batustun\FilamentMediaLibrary\FilamentMediaLibraryServiceProvider;
+use Batustun\FilamentMediaLibrary\Tests\Fixtures\PermissionedUser;
 use Batustun\FilamentMediaLibrary\Tests\Fixtures\TestPanelProvider;
 use BladeUI\Heroicons\BladeHeroiconsServiceProvider;
 use BladeUI\Icons\BladeIconsServiceProvider;
@@ -54,12 +55,20 @@ abstract class TestCase extends Orchestra
             FilamentServiceProvider::class,
             FormsServiceProvider::class,
             InfolistsServiceProvider::class,
-            LivewireServiceProvider::class,
             NotificationsServiceProvider::class,
             class_exists(SchemasServiceProvider::class) ? SchemasServiceProvider::class : null,
             SupportServiceProvider::class,
             TablesServiceProvider::class,
             WidgetsServiceProvider::class,
+
+            // Must register after Filament: SupportServiceProvider rebinds
+            // Livewire's DataStore to its own subclass with a non-shared
+            // binding, which discards Livewire's shared instance. Livewire
+            // registering last restores the singleton — the order a real
+            // application gets from Composer, and the order component
+            // rendering depends on.
+            LivewireServiceProvider::class,
+
             FilamentMediaLibraryServiceProvider::class,
             TestPanelProvider::class,
         ]));
@@ -74,6 +83,10 @@ abstract class TestCase extends Orchestra
             'database' => ':memory:',
             'prefix' => '',
         ]);
+
+        // Testbench ships no user model; the package resolves one for the
+        // `uploaded_by` relation the detail pane renders.
+        $app['config']->set('auth.providers.users.model', PermissionedUser::class);
 
         $app['config']->set('filesystems.disks.public', [
             'driver' => 'local',
