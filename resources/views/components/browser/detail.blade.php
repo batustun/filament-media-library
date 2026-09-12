@@ -56,44 +56,117 @@
                 </x-filament::callout>
             @endif
 
-            <div class="fml-preview">
-                @if ($item->isProviderBacked())
-                    @if ($item->isReady())
-                        <video
-                            src="{{ $url }}"
-                            @if ($poster = $item->posterUrl()) poster="{{ $poster }}" @endif
-                            controls
-                            playsinline
-                            preload="metadata"
-                        ></video>
-                    @elseif ($poster = $item->posterUrl())
-                        <img src="{{ $poster }}" alt="{{ $item->name }}" />
-                    @else
-                        <x-filament::loading-indicator class="fml-icon-lg fml-muted" />
-                    @endif
-                @else
-                @switch($kind)
-                    @case(MediaKind::Image)
+            <div
+                class="fml-preview"
+                @if (in_array($strategy = $item->previewStrategy(), ['text', 'archive'], true))
+                    x-data="fmlFilePreview({
+                        endpoint: @js(route('filament-media-library.preview.'.($strategy === 'text' ? 'text' : 'archive'), $item->id)),
+                        kind: @js($strategy),
+                    })"
+                    x-init="load()"
+                @endif
+            >
+                @switch($item->previewStrategy())
+                    @case('image')
                         <img
                             src="{{ $item->conversionUrl('medium') ?? $url }}"
                             @if ($srcset = $item->srcset()) srcset="{{ $srcset }}" sizes="(min-width: 1280px) 320px, 100vw" @endif
                             alt="{{ $item->alt ?: $item->name }}"
                             decoding="async"
+                            onerror="this.replaceWith(Object.assign(document.createElement('span'), { className: 'fml-thumb-fallback' }))"
                         />
                         @break
-                    @case(MediaKind::Video)
-                        <video src="{{ $url }}" controls preload="metadata"></video>
+
+                    @case('video')
+                        @if ($item->isProviderBacked() && ! $item->isReady())
+                            @if ($poster = $item->posterUrl())
+                                <img src="{{ $poster }}" alt="{{ $item->name }}" />
+                            @else
+                                <x-filament::loading-indicator class="fml-icon-lg fml-muted" />
+                            @endif
+                        @else
+                            <video
+                                src="{{ $url }}"
+                                @if ($poster = $item->posterUrl()) poster="{{ $poster }}" @endif
+                                controls
+                                playsinline
+                                preload="metadata"
+                            ></video>
+                        @endif
                         @break
-                    @case(MediaKind::Audio)
+
+                    @case('audio')
                         <audio src="{{ $url }}" controls preload="metadata"></audio>
                         @break
-                    @case(MediaKind::Pdf)
+
+                    @case('pdf')
                         <iframe src="{{ $url }}" loading="lazy" title="{{ $item->name }}"></iframe>
                         @break
+
+                    @case('office')
+                        {{-- Rendered by a third party: see preview.office_viewer. --}}
+                        <iframe src="{{ $item->officeViewerUrl() }}" loading="lazy" title="{{ $item->name }}"></iframe>
+                        @break
+
+                    @case('text')
+                        <div class="fml-textpreview">
+                            <template x-if="loading">
+                                <x-filament::loading-indicator class="fml-icon-sm fml-muted" />
+                            </template>
+                            <template x-if="! loading && error">
+                                <span class="fml-muted" x-text="error"></span>
+                            </template>
+                            <template x-if="! loading && ! error && rows">
+                                <div class="fml-table-wrap">
+                                    <table class="fml-table">
+                                        <tbody>
+                                            <template x-for="(row, r) in rows" :key="r">
+                                                <tr>
+                                                    <template x-for="(cell, c) in row" :key="c">
+                                                        <td x-text="cell"></td>
+                                                    </template>
+                                                </tr>
+                                            </template>
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </template>
+                            <template x-if="! loading && ! error && ! rows">
+                                <pre class="fml-code" x-text="content"></pre>
+                            </template>
+                            <template x-if="truncated">
+                                <p class="fml-hint fml-muted">{{ __($t.'.messages.preview_truncated') }}</p>
+                            </template>
+                        </div>
+                        @break
+
+                    @case('archive')
+                        <div class="fml-textpreview">
+                            <template x-if="loading">
+                                <x-filament::loading-indicator class="fml-icon-sm fml-muted" />
+                            </template>
+                            <template x-if="! loading && error">
+                                <span class="fml-muted" x-text="error"></span>
+                            </template>
+                            <template x-if="! loading && ! error">
+                                <ul class="fml-archive">
+                                    <template x-for="entry in entries" :key="entry.name">
+                                        <li>
+                                            <span class="fml-archive__name" x-text="entry.name"></span>
+                                            <span class="fml-archive__size" x-text="humanSize(entry.size)"></span>
+                                        </li>
+                                    </template>
+                                </ul>
+                            </template>
+                            <template x-if="truncated">
+                                <p class="fml-hint fml-muted">{{ __($t.'.messages.preview_truncated') }}</p>
+                            </template>
+                        </div>
+                        @break
+
                     @default
                         <x-filament::icon :icon="$kind->getIcon()" class="fml-icon-xl fml-muted" />
                 @endswitch
-                @endif
             </div>
 
             @if ($usage > 0)

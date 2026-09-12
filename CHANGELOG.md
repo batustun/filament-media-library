@@ -7,6 +7,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.3.0] - 2026-09-12
+
+### Added
+- **Previews for the file types a browser cannot render.** Text, code, JSON,
+  XML, Markdown and logs are shown inline from a bounded window read through the
+  application; CSV is rendered as a table; ZIP archives list their contents via
+  PHP's own ZipArchive. Nothing leaves your server, the permission check
+  applies, and private disks work.
+- Opt-in Office previews (`preview.office_viewer`) through Microsoft's or
+  Google's viewer. Off by default: both need the file to be publicly reachable
+  and both receive its URL.
+
+### Fixed
+- HEIC, HEIF and TIFF were classified as images and rendered in an `<img>`,
+  which no mainstream browser can decode — the detail panel showed a broken
+  image. They now fall back to the type icon everywhere, decided up front
+  rather than relying on an `onerror` handler.
+
 ## [1.2.0] - 2026-09-12
 
 ### Added
@@ -178,7 +196,8 @@ First public release.
 - English, Turkish, German, French, Spanish, Italian, Dutch, Brazilian
   Portuguese, Russian and Arabic. RTL works without extra rules.
 
-[Unreleased]: https://github.com/batustun/filament-media-library/compare/v1.2.0...HEAD
+[Unreleased]: https://github.com/batustun/filament-media-library/compare/v1.3.0...HEAD
+[1.3.0]: https://github.com/batustun/filament-media-library/compare/v1.2.0...v1.3.0
 [1.2.0]: https://github.com/batustun/filament-media-library/compare/v1.1.3...v1.2.0
 [1.1.3]: https://github.com/batustun/filament-media-library/compare/v1.1.2...v1.1.3
 [1.1.2]: https://github.com/batustun/filament-media-library/compare/v1.1.1...v1.1.2

@@ -114,6 +114,7 @@ return [
     ],
 
     'messages' => [
+        'preview_truncated' => 'يتم عرض الجزء الأول فقط من هذا الملف',
         'duplicated' => 'تم التكرار',
         'tags_updated' => 'تم تحديث الوسوم',
         'image_saved' => 'تم حفظ الصورة',

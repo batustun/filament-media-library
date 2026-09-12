@@ -114,6 +114,7 @@ return [
     ],
 
     'messages' => [
+        'preview_truncated' => 'Seul le début de ce fichier est affiché',
         'duplicated' => 'Dupliqué',
         'tags_updated' => 'Étiquettes mises à jour',
         'image_saved' => 'Image enregistrée',

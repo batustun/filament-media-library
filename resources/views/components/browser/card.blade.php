@@ -34,7 +34,7 @@
     @endif
 
     <div class="fml-card__thumb">
-        @if ($kind === MediaKind::Image)
+        @if ($item->isRenderableImage())
             <img
                 src="{{ $item->thumbnailUrl() }}"
                 @if ($srcset = $item->srcset()) srcset="{{ $srcset }}" sizes="160px" @endif

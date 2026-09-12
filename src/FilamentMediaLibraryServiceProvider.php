@@ -13,6 +13,7 @@ use Batustun\FilamentMediaLibrary\Filament\Components\MediaInput;
 use Batustun\FilamentMediaLibrary\Http\Controllers\ChunkedUploadController;
 use Batustun\FilamentMediaLibrary\Http\Controllers\ImageEditController;
 use Batustun\FilamentMediaLibrary\Http\Controllers\MediaUploadController;
+use Batustun\FilamentMediaLibrary\Http\Controllers\PreviewController;
 use Batustun\FilamentMediaLibrary\Http\Controllers\ProviderWebhookController;
 use Batustun\FilamentMediaLibrary\Livewire\MediaPicker;
 use Batustun\FilamentMediaLibrary\Models\Media;
@@ -164,6 +165,8 @@ class FilamentMediaLibraryServiceProvider extends PackageServiceProvider
                 Route::post('upload', [MediaUploadController::class, 'store'])->name('upload');
                 Route::post('chunk', [ChunkedUploadController::class, 'store'])->name('chunk');
                 Route::post('{media}/image', [ImageEditController::class, 'store'])->name('image-edit');
+                Route::get('{media}/preview/text', [PreviewController::class, 'text'])->name('preview.text');
+                Route::get('{media}/preview/archive', [PreviewController::class, 'archive'])->name('preview.archive');
                 Route::get('{media}/download', [MediaUploadController::class, 'download'])->name('download');
                 Route::delete('{media}', [MediaUploadController::class, 'destroy'])->name('destroy');
             });

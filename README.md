@@ -365,6 +365,40 @@ belong to this library.
 
 ---
 
+## Previews
+
+| | Previewed with |
+|---|---|
+| Images (JPEG, PNG, GIF, WebP, AVIF, SVG, BMP, ICO) | the browser, at a mid-size rendition |
+| Video, audio | native players |
+| PDF | an inline frame |
+| Text, code, JSON, XML, Markdown, logs | a bounded window read through your app |
+| **CSV** | rendered as a table |
+| ZIP archives | their entry list, via PHP's own ZipArchive |
+| HEIC, HEIF, TIFF | the type icon — no mainstream browser decodes them |
+| Word, Excel, PowerPoint | opt-in, see below |
+
+```php
+'preview' => [
+    'text' => true,
+    'archives' => true,
+    'office_viewer' => null,   // null | 'microsoft' | 'google'
+],
+```
+
+Text and archive previews are read **through your application**, so the
+permission check applies, private disks work, and a two-gigabyte log cannot be
+pulled into the panel by clicking on it — only a bounded window is sent, and
+anything that turns out to be binary is refused rather than sprayed across the
+screen.
+
+> ⚠ `office_viewer` is the one exception: neither browsers nor PHP can render
+> Office formats, so it hands the file's **URL to Microsoft or Google**, and the
+> file must be reachable from the public internet. It is `null` by default for
+> that reason.
+
+---
+
 ## Security
 
 | | |

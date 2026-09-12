@@ -114,6 +114,7 @@ return [
     ],
 
     'messages' => [
+        'preview_truncated' => 'Showing the first part of this file only',
         'duplicated' => 'Duplicated',
         'tags_updated' => 'Tags updated',
         'image_saved' => 'Image saved',

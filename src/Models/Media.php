@@ -9,6 +9,7 @@ use Batustun\FilamentMediaLibrary\Models\Concerns\BelongsToTenant;
 use Batustun\FilamentMediaLibrary\Models\Concerns\HasConversions;
 use Batustun\FilamentMediaLibrary\Models\Concerns\HasCustomMetadata;
 use Batustun\FilamentMediaLibrary\Models\Concerns\HasMediaTags;
+use Batustun\FilamentMediaLibrary\Models\Concerns\HasPreview;
 use Batustun\FilamentMediaLibrary\Models\Concerns\TracksUsage;
 use Batustun\FilamentMediaLibrary\Providers\Contracts\MediaProvider;
 use Batustun\FilamentMediaLibrary\Providers\MediaProviderRegistry;
@@ -52,6 +53,7 @@ class Media extends Model
     use HasConversions;
     use HasCustomMetadata;
     use HasMediaTags;
+    use HasPreview;
     use HasUuids;
     use TracksUsage;
 

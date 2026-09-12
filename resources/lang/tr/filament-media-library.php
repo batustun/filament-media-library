@@ -114,6 +114,7 @@ return [
     ],
 
     'messages' => [
+        'preview_truncated' => 'Bu dosyanın yalnızca ilk kısmı gösteriliyor',
         'duplicated' => 'Çoğaltıldı',
         'tags_updated' => 'Etiketler güncellendi',
         'image_saved' => 'Görsel kaydedildi',

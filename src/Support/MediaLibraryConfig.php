@@ -353,6 +353,24 @@ final class MediaLibraryConfig
         return is_string($queue) && $queue !== '' ? $queue : null;
     }
 
+    public static function previewsText(): bool
+    {
+        return (bool) self::get('preview.text', true);
+    }
+
+    public static function previewsArchives(): bool
+    {
+        return (bool) self::get('preview.archives', true);
+    }
+
+    /** "microsoft", "google", or null when third-party previewing is off. */
+    public static function officeViewer(): ?string
+    {
+        $viewer = strtolower((string) self::get('preview.office_viewer', ''));
+
+        return in_array($viewer, ['microsoft', 'google'], true) ? $viewer : null;
+    }
+
     public static function autoAttachesToFileUpload(): bool
     {
         return (bool) self::get('auto_attach.file_upload', true);

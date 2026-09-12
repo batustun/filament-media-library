@@ -21,7 +21,7 @@
     <td>
         <div class="fml-table__file">
             <span class="fml-table__thumb">
-                @if ($kind === MediaKind::Image)
+                @if ($item->isRenderableImage())
                     <img
                         src="{{ $item->thumbnailUrl() }}"
                         alt=""

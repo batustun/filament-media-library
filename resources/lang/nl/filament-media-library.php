@@ -114,6 +114,7 @@ return [
     ],
 
     'messages' => [
+        'preview_truncated' => 'Alleen het eerste deel van dit bestand wordt getoond',
         'duplicated' => 'Gedupliceerd',
         'tags_updated' => 'Tags bijgewerkt',
         'image_saved' => 'Afbeelding opgeslagen',

@@ -98,6 +98,35 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Previews
+    |--------------------------------------------------------------------------
+    |
+    | Images, video, audio and PDF are previewed by the browser itself. These
+    | cover the rest.
+    |
+    | `text` reads a bounded window of a text or code file and shows it inline
+    | (CSV is rendered as a table). Nothing leaves your server.
+    |
+    | `archives` lists what is inside a ZIP, using PHP's own ZipArchive.
+    |
+    | `office_viewer` previews Word, Excel and PowerPoint. Neither browsers nor
+    | PHP can render those, so this hands the file's URL to a third party:
+    |   "microsoft" -> view.officeapps.live.com
+    |   "google"    -> docs.google.com/viewer
+    |
+    | ⚠ Both require the file to be reachable from the public internet, and both
+    | send its URL to that company. It is null by default for exactly that
+    | reason — turn it on only for content you are happy to share.
+    |
+    */
+    'preview' => [
+        'text' => true,
+        'archives' => true,
+        'office_viewer' => env('MEDIA_LIBRARY_OFFICE_VIEWER'),
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
     | Automatic Attachment
     |--------------------------------------------------------------------------
     |

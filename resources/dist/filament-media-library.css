@@ -842,3 +842,58 @@
 }
 
 .fml-btn-block { inline-size: 100%; }
+
+/* ------------------------------------------------------- file previews */
+
+.fml-textpreview {
+    inline-size: 100%;
+    max-block-size: 18rem;
+    overflow: auto;
+    padding: 0.625rem;
+}
+
+.fml-code {
+    margin: 0;
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: 0.6875rem;
+    line-height: 1.5;
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+    color: var(--fml-text);
+}
+
+.fml-archive {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    font-size: 0.75rem;
+}
+
+.fml-archive li {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 0.75rem;
+    padding-block: 0.1875rem;
+    border-block-end: 1px solid var(--fml-border);
+}
+
+.fml-archive li:last-child { border-block-end: 0; }
+
+.fml-archive__name {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.fml-archive__size {
+    flex-shrink: 0;
+    color: var(--fml-text-muted);
+    font-variant-numeric: tabular-nums;
+}
+
+/* A text or archive preview scrolls internally, so the panel keeps its shape. */
+.fml-preview:has(.fml-textpreview) {
+    align-items: stretch;
+    justify-content: stretch;
+}

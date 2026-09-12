@@ -413,3 +413,100 @@ window.fmlImageEditor = function ({ src, endpoint, csrf, mime }) {
         },
     }
 }
+
+/**
+ * Fetches a preview for a file the browser cannot render itself: a bounded
+ * window of a text file, or the entry list of an archive.
+ *
+ * Read through the application, so the permission check applies and a private
+ * disk works — and so a huge file cannot be pulled into the panel by clicking
+ * on it.
+ */
+window.fmlFilePreview = function ({ endpoint, kind }) {
+    return {
+        loading: true,
+        error: null,
+        content: '',
+        rows: null,
+        entries: [],
+        truncated: false,
+
+        async load() {
+            try {
+                const response = await fetch(endpoint, { headers: { Accept: 'application/json' } })
+
+                if (! response.ok) throw new Error(`HTTP ${response.status}`)
+
+                const payload = await response.json()
+
+                if (! payload.ok) {
+                    this.error = payload.reason === 'binary'
+                        ? 'Binary file'
+                        : 'Preview unavailable'
+
+                    return
+                }
+
+                this.truncated = Boolean(payload.truncated)
+
+                if (kind === 'archive') {
+                    this.entries = payload.entries ?? []
+
+                    return
+                }
+
+                this.content = payload.content ?? ''
+                this.rows = payload.csv ? this.parseCsv(this.content) : null
+            } catch (error) {
+                this.error = 'Preview unavailable'
+            } finally {
+                this.loading = false
+            }
+        },
+
+        /**
+         * Enough CSV to render a readable table: quoted fields, escaped quotes
+         * and newlines inside quotes. Not a parser for arbitrary dialects —
+         * this is a preview, not an import.
+         */
+        parseCsv(text) {
+            const rows = []
+            let row = []
+            let field = ''
+            let quoted = false
+
+            for (let i = 0; i < text.length; i++) {
+                const char = text[i]
+
+                if (quoted) {
+                    if (char === '"') {
+                        if (text[i + 1] === '"') { field += '"'; i++ } else { quoted = false }
+                    } else {
+                        field += char
+                    }
+
+                    continue
+                }
+
+                if (char === '"') { quoted = true }
+                else if (char === ',') { row.push(field); field = '' }
+                else if (char === '\n') { row.push(field); rows.push(row); row = []; field = '' }
+                else if (char !== '\r') { field += char }
+            }
+
+            if (field !== '' || row.length) { row.push(field); rows.push(row) }
+
+            // Cap the table: a preview should stay glanceable.
+            return rows.slice(0, 50)
+        },
+
+        humanSize(bytes) {
+            if (! bytes) return '0 B'
+
+            const units = ['B', 'KB', 'MB', 'GB']
+            const power = Math.min(Math.floor(Math.log(bytes) / Math.log(1024)), units.length - 1)
+
+            return `${(bytes / 1024 ** power).toFixed(power ? 1 : 0)} ${units[power]}`
+        },
+    }
+}
