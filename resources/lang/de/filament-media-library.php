@@ -161,6 +161,7 @@ return [
     ],
 
     'doctor' => [
+        'unlistable' => 'Die Festplatte [:disk] konnte nicht aufgelistet werden, daher wurden die Dateien darauf nicht geprüft. Grund: :reason',
         'missing' => 'Indiziert, aber im Speicher nicht vorhanden',
         'unindexed' => 'Im Speicher vorhanden, aber nicht indiziert',
         'duplicates' => 'Byte-identische Duplikate',

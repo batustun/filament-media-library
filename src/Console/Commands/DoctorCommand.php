@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Batustun\FilamentMediaLibrary\Console\Commands;
 
+use Batustun\FilamentMediaLibrary\Exceptions\CannotListDisk;
 use Batustun\FilamentMediaLibrary\Models\Media;
 use Batustun\FilamentMediaLibrary\Services\MediaIndexer;
 use Batustun\FilamentMediaLibrary\Services\MediaService;
@@ -14,6 +15,8 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 
 use function Laravel\Prompts\confirm;
+
+use Throwable;
 
 /**
  * Reports the three ways a media library drifts from its storage, and can
@@ -29,6 +32,9 @@ class DoctorCommand extends Command
 
     protected $description = 'Check the media library against its storage disk and report or repair drift.';
 
+    /** Why the disk could not be enumerated, when that is what happened. */
+    private ?string $listingFailure = null;
+
     public function handle(MediaIndexer $indexer, MediaService $service): int
     {
         $disk = (string) ($this->option('disk') ?: MediaLibraryConfig::defaultDisk());
@@ -43,10 +49,24 @@ class DoctorCommand extends Command
             ['Check', 'Count'],
             [
                 [__('filament-media-library::filament-media-library.doctor.missing'), count($missing)],
-                [__('filament-media-library::filament-media-library.doctor.unindexed'), count($unindexed)],
+                [
+                    __('filament-media-library::filament-media-library.doctor.unindexed'),
+                    $unindexed === null ? '—' : count($unindexed),
+                ],
                 [__('filament-media-library::filament-media-library.doctor.duplicates'), count($duplicates)],
             ],
         );
+
+        if ($unindexed === null) {
+            // The other two checks read the database and still stand, so the
+            // report is degraded rather than abandoned.
+            $this->components->warn(
+                __('filament-media-library::filament-media-library.doctor.unlistable', [
+                    'disk' => $disk,
+                    'reason' => $this->listingFailure ?? '',
+                ]),
+            );
+        }
 
         if ($duplicates !== []) {
             $this->components->warn('Byte-identical duplicates (the oldest of each group is the one to keep):');
@@ -68,7 +88,7 @@ class DoctorCommand extends Command
             $this->prune($missing, $service);
         }
 
-        if ($unindexed !== [] && $this->option('index')) {
+        if ($unindexed !== null && $unindexed !== [] && $this->option('index')) {
             $repaired = true;
             $this->index($disk, $unindexed, $service);
         }
@@ -117,10 +137,21 @@ class DoctorCommand extends Command
         );
     }
 
-    /** @return array<int, string> */
-    private function findUnindexed(string $disk): array
+    /**
+     * Files on the disk that the library does not know about, or null when the
+     * disk cannot be enumerated at all.
+     *
+     * @return array<int, string>|null
+     */
+    private function findUnindexed(string $disk): ?array
     {
-        $onDisk = Storage::disk($disk)->allFiles();
+        try {
+            $onDisk = Storage::disk($disk)->allFiles();
+        } catch (Throwable $e) {
+            $this->listingFailure = (new CannotListDisk($disk, $e))->reason();
+
+            return null;
+        }
 
         $indexed = Media::query()
             ->onDisk($disk)

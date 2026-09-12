@@ -161,6 +161,7 @@ return [
     ],
 
     'doctor' => [
+        'unlistable' => 'Non è stato possibile elencare il disco [:disk], quindi i file al suo interno non sono stati controllati. Motivo: :reason',
         'missing' => 'Indicizzato ma assente dall’archiviazione',
         'unindexed' => 'Presente nell’archiviazione ma non indicizzato',
         'duplicates' => 'Duplicati identici byte per byte',

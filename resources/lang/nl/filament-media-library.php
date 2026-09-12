@@ -161,6 +161,7 @@ return [
     ],
 
     'doctor' => [
+        'unlistable' => 'De schijf [:disk] kon niet worden uitgelezen, dus de bestanden erop zijn niet gecontroleerd. Reden: :reason',
         'missing' => 'Geïndexeerd maar niet aanwezig in de opslag',
         'unindexed' => 'Aanwezig in de opslag maar niet geïndexeerd',
         'duplicates' => 'Byte-identieke duplicaten',

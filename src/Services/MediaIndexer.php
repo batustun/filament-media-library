@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Batustun\FilamentMediaLibrary\Services;
 
+use Batustun\FilamentMediaLibrary\Exceptions\CannotListDisk;
 use Batustun\FilamentMediaLibrary\Models\Media;
 use Closure;
 use Illuminate\Support\Facades\Storage;
@@ -20,7 +21,14 @@ class MediaIndexer
      */
     public function sync(string $disk, ?string $directory = null, int $chunkSize = 500, ?Closure $progress = null): array
     {
-        $files = Storage::disk($disk)->allFiles($directory ?? '');
+        try {
+            $files = Storage::disk($disk)->allFiles($directory ?? '');
+        } catch (Throwable $e) {
+            // A disk can refuse to enumerate: wrong credentials, an adapter
+            // with no deep listing, a bucket too large to walk. That is worth
+            // reporting, not worth a stack trace.
+            throw new CannotListDisk($disk, $e);
+        }
 
         $indexed = 0;
         $skipped = 0;

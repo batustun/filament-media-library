@@ -161,6 +161,7 @@ return [
     ],
 
     'doctor' => [
+        'unlistable' => '[:disk] diski listelenemedi, bu yüzden üzerindeki dosyalar kontrol edilemedi. Sebep: :reason',
         'missing' => 'Kayıtlı ama depolamada yok',
         'unindexed' => 'Depolamada var ama kayıtlı değil',
         'duplicates' => 'Bayt bazında aynı kopyalar',

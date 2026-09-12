@@ -161,6 +161,7 @@ return [
     ],
 
     'doctor' => [
+        'unlistable' => 'The disk [:disk] could not be listed, so files on it could not be checked. Reason: :reason',
         'missing' => 'Indexed but missing from storage',
         'unindexed' => 'On storage but not indexed',
         'duplicates' => 'Byte-identical duplicates',

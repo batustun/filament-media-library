@@ -161,6 +161,7 @@ return [
     ],
 
     'doctor' => [
+        'unlistable' => 'Le disque [:disk] n’a pas pu être listé, les fichiers qui s’y trouvent n’ont donc pas été vérifiés. Raison : :reason',
         'missing' => 'Indexé mais absent du stockage',
         'unindexed' => 'Présent sur le stockage mais non indexé',
         'duplicates' => 'Doublons identiques octet par octet',

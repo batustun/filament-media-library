@@ -161,6 +161,7 @@ return [
     ],
 
     'doctor' => [
+        'unlistable' => 'No se pudo listar el disco [:disk], por lo que no se comprobaron sus archivos. Motivo: :reason',
         'missing' => 'Indexado pero ausente del almacenamiento',
         'unindexed' => 'En el almacenamiento pero sin indexar',
         'duplicates' => 'Duplicados idénticos byte a byte',

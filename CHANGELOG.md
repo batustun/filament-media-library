@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.4.3] - 2026-09-12
+
+### Fixed
+- `media-library:doctor` and `media-library:sync` crashed with a raw Flysystem
+  stack trace when a disk refused to enumerate — wrong or placeholder
+  credentials, an adapter with no deep listing, a bucket too large to walk.
+  They now report the disk and the reason. `doctor` degrades rather than
+  aborting: the two checks that read the database are still reported.
+
 ## [1.4.2] - 2026-09-12
 
 ### Fixed
@@ -223,7 +232,8 @@ First public release.
 - English, Turkish, German, French, Spanish, Italian, Dutch, Brazilian
   Portuguese, Russian and Arabic. RTL works without extra rules.
 
-[Unreleased]: https://github.com/batustun/filament-media-library/compare/v1.4.2...HEAD
+[Unreleased]: https://github.com/batustun/filament-media-library/compare/v1.4.3...HEAD
+[1.4.3]: https://github.com/batustun/filament-media-library/compare/v1.4.2...v1.4.3
 [1.4.2]: https://github.com/batustun/filament-media-library/compare/v1.4.1...v1.4.2
 [1.4.1]: https://github.com/batustun/filament-media-library/compare/v1.4.0...v1.4.1
 [1.4.0]: https://github.com/batustun/filament-media-library/compare/v1.3.0...v1.4.0
