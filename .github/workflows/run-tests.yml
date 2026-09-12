@@ -21,6 +21,7 @@ jobs:
         os: [ubuntu-latest]
         php: ['8.2', '8.3', '8.4']
         laravel: ['11.*', '12.*', '13.*']
+        filament: ['4.*', '5.*']
         stability: [prefer-lowest, prefer-stable]
         include:
           - laravel: '11.*'
@@ -34,7 +35,7 @@ jobs:
           - laravel: '13.*'
             php: '8.2'
 
-    name: PHP ${{ matrix.php }} · Laravel ${{ matrix.laravel }} · ${{ matrix.stability }}
+    name: PHP ${{ matrix.php }} · Laravel ${{ matrix.laravel }} · Filament ${{ matrix.filament }} · ${{ matrix.stability }}
 
     steps:
       - name: Checkout
@@ -51,6 +52,7 @@ jobs:
         run: |
           composer require \
             "laravel/framework:${{ matrix.laravel }}" \
+            "filament/filament:${{ matrix.filament }}" \
             "orchestra/testbench:${{ matrix.testbench }}" \
             --no-interaction --no-update
           composer update --${{ matrix.stability }} --prefer-dist --no-interaction

@@ -37,7 +37,7 @@ upload, organise, search and reuse every asset in your panel.
 |---|---|
 | PHP | 8.2+ |
 | Laravel | 11.28 · 12 · 13 |
-| Filament | 5.x |
+| Filament | 4.x · 5.x |
 
 ---
 
@@ -48,7 +48,16 @@ composer require batustun/filament-media-library
 php artisan migrate
 ```
 
-That is the whole install. Migrations are auto-loaded — table names are
+That is the whole install.
+
+> Not on Packagist yet? Add the repository first and the command above works
+> unchanged:
+>
+> ```json
+> "repositories": [
+>     { "type": "vcs", "url": "https://github.com/batustun/filament-media-library.git" }
+> ]
+> ``` Migrations are auto-loaded — table names are
 configurable, so there is nothing to publish and nothing that can run twice.
 
 Register the plugin on any panel:

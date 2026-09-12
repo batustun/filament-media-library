@@ -35,8 +35,17 @@ it('publishes its config under its own key', function () {
 });
 
 it('registers the picker as a livewire component', function () {
-    expect(app('livewire.finder')->resolveClassComponentClassName('filament-media-library-picker'))
-        ->toBe(MediaPicker::class);
+    // Livewire 3 resolves through the component registry, Livewire 4 through
+    // the finder. The package supports both, so the test asks whichever exists.
+    // A string, not ::class: on Livewire 4 this class is gone, and static
+    // analysis would rightly object to a reference it cannot resolve.
+    $registry = 'Livewire\\Mechanisms\\ComponentRegistry';
+
+    $resolved = class_exists($registry)
+        ? app($registry)->getClass('filament-media-library-picker')
+        : app('livewire.finder')->resolveClassComponentClassName('filament-media-library-picker');
+
+    expect($resolved)->toBe(MediaPicker::class);
 });
 
 it('exposes the publish tags the README documents', function () {

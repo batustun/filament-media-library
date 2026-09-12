@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.4.0] - 2026-09-12
+
+### Added
+- **Filament 4 support.** The package required Filament 5, which kept it out of
+  every application still on 4. Every class and Blade component it uses exists
+  unchanged in 4.12, and 4 emits the same `oklch()` colour variables, so the
+  stylesheet needed no change either. The whole suite runs against both, and CI
+  now covers Filament 4 and 5 across PHP 8.2-8.4 and Laravel 11-13.
+- Livewire 3 alongside Livewire 4, which Filament 4 requires.
+
 ## [1.3.0] - 2026-09-12
 
 ### Added
@@ -196,7 +206,8 @@ First public release.
 - English, Turkish, German, French, Spanish, Italian, Dutch, Brazilian
   Portuguese, Russian and Arabic. RTL works without extra rules.
 
-[Unreleased]: https://github.com/batustun/filament-media-library/compare/v1.3.0...HEAD
+[Unreleased]: https://github.com/batustun/filament-media-library/compare/v1.4.0...HEAD
+[1.4.0]: https://github.com/batustun/filament-media-library/compare/v1.3.0...v1.4.0
 [1.3.0]: https://github.com/batustun/filament-media-library/compare/v1.2.0...v1.3.0
 [1.2.0]: https://github.com/batustun/filament-media-library/compare/v1.1.3...v1.2.0
 [1.1.3]: https://github.com/batustun/filament-media-library/compare/v1.1.2...v1.1.3
