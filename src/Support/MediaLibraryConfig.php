@@ -262,6 +262,19 @@ final class MediaLibraryConfig
         return (bool) self::get('tenancy.enabled', false);
     }
 
+    /**
+     * Whether media that belongs to no tenant — uploaded from a panel without
+     * tenancy, typically the admin one — is visible to every tenant.
+     *
+     * Off by default: the safe reading of "scoped to a tenant" is that nothing
+     * else is visible, and an application that wants shared assets should say
+     * so deliberately.
+     */
+    public static function tenancyShares(): bool
+    {
+        return (bool) self::get('tenancy.shared', false);
+    }
+
     public static function tenantColumn(): string
     {
         $column = (string) self::get('tenancy.column', 'tenant_id');

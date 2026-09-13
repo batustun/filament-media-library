@@ -29,6 +29,7 @@ use Throwable;
  * @property string|null $provider
  * @property string|null $external_id
  * @property string|null $directory
+ * @property int|string|null $tenant_id the column config('filament-media-library.tenancy.column') names
  * @property string $path
  * @property string|null $url
  * @property string $name

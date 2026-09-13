@@ -7,6 +7,46 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.8.0] - 2026-09-13
+
+### Security
+- **One tenant could read, overwrite and delete another tenant's files.** The
+  tenant scope is a global scope on the model, which covers every Eloquent path
+  — but it asks Filament for the current tenant, and the package's own HTTP
+  routes run on plain `web` middleware, outside any panel, where Filament knows
+  of no tenant. The scope then applied no filter at all, so
+  `GET /media-library/{id}/download`, the preview endpoints,
+  `POST /media-library/{id}/image` and `DELETE /media-library/{id}` answered for
+  any id to any authenticated user with the matching ability.
+
+  The scope now fails closed: with no tenant determinable it hides everything
+  tenanted. A panel that does not use tenancy (the usual admin panel) and
+  having no request to serve at all (`sync`, `doctor`, queue workers) are the
+  only exceptions. The links the package mints for those routes are now signed,
+  and the signature is what vouches for the one file it names.
+
+  Anyone running tenanted panels with `MEDIA_LIBRARY_TENANCY=true` should
+  upgrade. With it off — the default — every tenant could already see every
+  file through the picker itself, which is now called out in the README and the
+  config.
+- Chunked uploads are stamped with the tenant their signed endpoint names.
+  Running outside the panel, they were stored belonging to nobody and then
+  vanished from the tenant that had just uploaded them.
+
+### Added
+- `MEDIA_LIBRARY_TENANCY_SHARED`, which makes media belonging to no tenant —
+  what an admin panel uploads — visible to every tenant, for a library of
+  common assets. Off by default, and it never exposes one tenant to another.
+- `Media::actingForTenant()`, for code that has to run as a tenant Filament
+  cannot resolve on its own.
+
+### Changed
+- `POST /media-library/upload` and `DELETE /media-library/{media}`, which the
+  package's own interface never calls, are subject to the same rule: with
+  tenancy on and no tenant determinable they answer for untenanted media only.
+  Applications calling them from outside a panel should sign the URL or add
+  their panel's middleware to `filament-media-library.routes.middleware`.
+
 ## [1.7.0] - 2026-09-13
 
 ### Fixed
@@ -397,7 +437,8 @@ First public release.
 - English, Turkish, German, French, Spanish, Italian, Dutch, Brazilian
   Portuguese, Russian and Arabic. RTL works without extra rules.
 
-[Unreleased]: https://github.com/batustun/filament-media-library/compare/v1.7.0...HEAD
+[Unreleased]: https://github.com/batustun/filament-media-library/compare/v1.8.0...HEAD
+[1.8.0]: https://github.com/batustun/filament-media-library/compare/v1.7.0...v1.8.0
 [1.7.0]: https://github.com/batustun/filament-media-library/compare/v1.6.0...v1.7.0
 [1.6.0]: https://github.com/batustun/filament-media-library/compare/v1.5.2...v1.6.0
 [1.5.2]: https://github.com/batustun/filament-media-library/compare/v1.5.1...v1.5.2

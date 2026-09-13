@@ -4,9 +4,9 @@ declare(strict_types=1);
 
 namespace Batustun\FilamentMediaLibrary\Http\Controllers;
 
-use Batustun\FilamentMediaLibrary\Models\Media;
 use Batustun\FilamentMediaLibrary\Services\MediaService;
 use Batustun\FilamentMediaLibrary\Support\Authorize;
+use Batustun\FilamentMediaLibrary\Support\SignedMedia;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\UploadedFile;
@@ -33,7 +33,7 @@ class ImageEditController extends Controller
 
         Authorize::ensure('manage', $request->user());
 
-        $record = Media::query()->findOrFail($media);
+        $record = SignedMedia::findOrFail($request, $media);
 
         abort_if($record->isProviderBacked(), 422);
 

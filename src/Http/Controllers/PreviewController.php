@@ -7,6 +7,7 @@ namespace Batustun\FilamentMediaLibrary\Http\Controllers;
 use Batustun\FilamentMediaLibrary\Models\Media;
 use Batustun\FilamentMediaLibrary\Support\Authorize;
 use Batustun\FilamentMediaLibrary\Support\MediaLibraryConfig;
+use Batustun\FilamentMediaLibrary\Support\SignedMedia;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
@@ -137,7 +138,7 @@ class PreviewController extends Controller
 
         Authorize::ensure('view', $request->user());
 
-        $item = Media::query()->findOrFail($media);
+        $item = SignedMedia::findOrFail($request, $media);
 
         abort_if($item->isProviderBacked(), 404);
 

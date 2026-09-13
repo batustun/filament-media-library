@@ -8,6 +8,7 @@ use Batustun\FilamentMediaLibrary\Models\Media;
 use Batustun\FilamentMediaLibrary\Services\MediaService;
 use Batustun\FilamentMediaLibrary\Support\Authorize;
 use Batustun\FilamentMediaLibrary\Support\MediaLibraryConfig;
+use Batustun\FilamentMediaLibrary\Support\SignedMedia;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
@@ -52,7 +53,7 @@ class MediaUploadController extends Controller
 
         Authorize::ensure('delete', $request->user());
 
-        $record = Media::query()->findOrFail($media);
+        $record = SignedMedia::findOrFail($request, $media);
 
         $service->delete($record);
 
@@ -72,7 +73,7 @@ class MediaUploadController extends Controller
 
         Authorize::ensure('view', $request->user());
 
-        $record = Media::query()->findOrFail($media);
+        $record = SignedMedia::findOrFail($request, $media);
 
         abort_if($record->isProviderBacked(), 404);
 

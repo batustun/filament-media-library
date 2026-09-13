@@ -346,13 +346,40 @@ TIFF are excluded rather than silently mangled.
 MEDIA_LIBRARY_TENANCY=true
 ```
 
+> **If your application has a tenanted panel, turn this on.** It is off by
+> default, and while it is off every tenant sees every file in the library —
+> the picker attaches itself to `FileUpload` in every panel, tenanted or not.
+
 Items are stamped with the current Filament tenant on upload, and a **global
 scope** keeps every query inside it — including a direct `Media::find()` from
 your own code, because a library that is only scoped on one query path is not
 scoped at all.
 
+The scope **fails closed**. Where no tenant can be determined, nothing tenanted
+is visible; the exceptions are a panel that does not use tenancy (your admin
+panel, which sees everything) and having no request to serve at all (`sync`,
+`doctor`, queue workers). The package registers plain HTTP routes for previews,
+downloads, image edits and chunked uploads which run outside the panel, where
+Filament knows of no tenant — so the links it mints are **signed**, and the
+signature is what vouches for the one file it names.
+
 The `tenant_id` column exists either way, so turning this on later needs no
-migration in your application.
+migration. Rows written before you turned it on belong to no tenant, so:
+
+```bash
+# See what a tenant will actually be able to reach.
+php artisan tinker --execute "echo \Batustun\FilamentMediaLibrary\Models\Media::withoutGlobalScope(\Batustun\FilamentMediaLibrary\Models\Media::TENANT_SCOPE)->whereNull('tenant_id')->count();"
+```
+
+Either backfill `tenant_id` for those rows, or share them with everyone:
+
+```dotenv
+MEDIA_LIBRARY_TENANCY_SHARED=true
+```
+
+which makes media belonging to no tenant — what an admin panel uploads —
+visible to every tenant, for a library of common assets. It never exposes one
+tenant's media to another.
 
 ---
 

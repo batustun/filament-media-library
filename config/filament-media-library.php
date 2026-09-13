@@ -250,12 +250,24 @@ return [
     | upload and every library query is scoped to it, so one tenant can never
     | see or delete another's media.
     |
-    | The column exists either way, so switching this on later needs no
-    | migration in your application.
+    | The scope fails closed: where no tenant can be determined and the request
+    | is not being served by a panel without tenancy, nothing tenanted is
+    | visible at all. The package's own HTTP routes run outside the panel, so
+    | the links it mints are signed — the signature is what vouches for the one
+    | file it names.
+    |
+    | LEAVING THIS OFF IN AN APPLICATION WITH TENANTED PANELS MEANS EVERY TENANT
+    | SEES EVERY FILE. The column exists either way, so switching it on later
+    | needs no migration — but existing rows have no tenant, and unless
+    | 'shared' is on they become invisible to tenants until you backfill.
+    |
+    | 'shared' makes media belonging to no tenant — what an admin panel uploads
+    | — visible to every tenant, for a library of common assets.
     |
     */
     'tenancy' => [
         'enabled' => (bool) env('MEDIA_LIBRARY_TENANCY', false),
+        'shared' => (bool) env('MEDIA_LIBRARY_TENANCY_SHARED', false),
         'column' => 'tenant_id',
     ],
 

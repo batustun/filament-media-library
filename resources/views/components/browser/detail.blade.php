@@ -1,5 +1,6 @@
 @php
     use Batustun\FilamentMediaLibrary\Enums\MediaKind;
+    use Illuminate\Support\Facades\URL;
 
     // A raw echo rather than the @js directive: directives are not compiled
     // inside component-tag attributes, and they swallow the newline after them.
@@ -64,7 +65,7 @@
                 class="fml-preview"
                 @if (in_array($strategy = $item->previewStrategy(), ['text', 'archive'], true))
                     x-data="fmlFilePreview({
-                        endpoint: {!! $js(route('filament-media-library.preview.'.($strategy === 'text' ? 'text' : 'archive'), $item->id)) !!},
+                        endpoint: {!! $js(URL::signedRoute('filament-media-library.preview.'.($strategy === 'text' ? 'text' : 'archive'), ['media' => $item->id])) !!},
                         kind: {!! $js($strategy) !!},
                     })"
                     x-init="load()"
@@ -251,7 +252,7 @@
                             tag="a"
                             icon="heroicon-m-arrow-down-tray"
                             color="gray"
-                            :href="route('filament-media-library.download', $item->id)"
+                            :href="URL::signedRoute('filament-media-library.download', ['media' => $item->id])"
                             :label="__($t.'.actions.download')"
                         />
                     @endif
@@ -360,7 +361,7 @@
                 <div
                     x-data="fmlImageEditor({
                         src: {!! $js($url) !!},
-                        endpoint: {!! $js(route('filament-media-library.image-edit', $item->id)) !!},
+                        endpoint: {!! $js(URL::signedRoute('filament-media-library.image-edit', ['media' => $item->id])) !!},
                         csrf: {!! $js(csrf_token()) !!},
                         mime: {!! $js($item->mime_type) !!},
                     })"

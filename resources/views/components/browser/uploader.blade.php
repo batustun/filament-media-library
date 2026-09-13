@@ -1,5 +1,7 @@
 @php
+    use Batustun\FilamentMediaLibrary\Models\Media;
     use Batustun\FilamentMediaLibrary\Support\MediaLibraryConfig;
+    use Illuminate\Support\Facades\URL;
 
     // A raw echo rather than the @js directive: directives are not compiled
     // inside component-tag attributes, and they swallow the newline after them.
@@ -9,8 +11,10 @@
 
     // Only files too large for a single POST take the chunked route; without a
     // configured endpoint the uploader simply never offers it.
+    // Signed, because the endpoint runs outside the panel: the signature is
+    // what tells it which tenant the upload belongs to.
     $chunkEndpoint = MediaLibraryConfig::chunkedUploadsEnabled() && Route::has('filament-media-library.chunk')
-        ? route('filament-media-library.chunk')
+        ? URL::signedRoute('filament-media-library.chunk', array_filter(['tenant' => Media::currentTenantKey()]))
         : null;
 
     $destination = $this->uploadTargetDirectory();

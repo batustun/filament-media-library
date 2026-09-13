@@ -8,6 +8,7 @@ use Batustun\FilamentMediaLibrary\Models\Media;
 use Batustun\FilamentMediaLibrary\Services\MediaService;
 use Batustun\FilamentMediaLibrary\Support\Authorize;
 use Batustun\FilamentMediaLibrary\Support\MediaLibraryConfig;
+use Batustun\FilamentMediaLibrary\Support\SignedMedia;
 use Batustun\FilamentMediaLibrary\Support\UploadGuard;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -70,7 +71,12 @@ class ChunkedUploadController extends Controller
         }
 
         try {
-            $media = $this->assemble($service, $directory, $name, $total, $validated, $request);
+            // The endpoint runs outside the panel, so Filament knows of no
+            // tenant here; the signed URL names the one the upload belongs to.
+            $media = Media::actingForTenant(
+                SignedMedia::tenantKey($request),
+                fn (): Media => $this->assemble($service, $directory, $name, $total, $validated, $request),
+            );
         } catch (Throwable $e) {
             $this->cleanUp($directory);
 
