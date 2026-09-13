@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.9.1] - 2026-09-13
+
+### Fixed
+- 1.9.0 broke every upload in an application that had not yet run `migrate`.
+  The new tenant type was written on create whether or not tenancy was in use,
+  naming a column such an application does not have, and the insert failed. It
+  is now written only when there is a tenant to stamp, and only when the column
+  is actually there — so upgrading without migrating degrades instead of
+  breaking. Anyone on 1.9.0 should take this.
+
 ## [1.9.0] - 2026-09-13
 
 ### Security
@@ -470,7 +480,8 @@ First public release.
 - English, Turkish, German, French, Spanish, Italian, Dutch, Brazilian
   Portuguese, Russian and Arabic. RTL works without extra rules.
 
-[Unreleased]: https://github.com/batustun/filament-media-library/compare/v1.9.0...HEAD
+[Unreleased]: https://github.com/batustun/filament-media-library/compare/v1.9.1...HEAD
+[1.9.1]: https://github.com/batustun/filament-media-library/compare/v1.9.0...v1.9.1
 [1.9.0]: https://github.com/batustun/filament-media-library/compare/v1.8.1...v1.9.0
 [1.8.1]: https://github.com/batustun/filament-media-library/compare/v1.8.0...v1.8.1
 [1.8.0]: https://github.com/batustun/filament-media-library/compare/v1.7.0...v1.8.0

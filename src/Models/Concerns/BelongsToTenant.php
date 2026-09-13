@@ -8,6 +8,7 @@ use Batustun\FilamentMediaLibrary\Support\MediaLibraryConfig;
 use Closure;
 use Filament\Facades\Filament;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Support\Facades\Schema;
 use Throwable;
 
 /**
@@ -34,6 +35,8 @@ trait BelongsToTenant
 
     protected static ?string $tenantTypeOverride = null;
 
+    protected static ?bool $tracksTenantType = null;
+
     public static function bootBelongsToTenant(): void
     {
         static::addGlobalScope(self::TENANT_SCOPE, function (Builder $query): void {
@@ -57,7 +60,7 @@ trait BelongsToTenant
                         // type. Matching them keeps an existing single-tenant
                         // library visible; an application with more than one
                         // tenanted panel should backfill it.
-                        if ($tenantType !== null) {
+                        if ($tenantType !== null && self::tracksTenantType()) {
                             $query->where(fn (Builder $query) => $query
                                 ->where($typeColumn, $tenantType)
                                 ->orWhereNull($typeColumn));
@@ -86,8 +89,19 @@ trait BelongsToTenant
                 return;
             }
 
-            $media->setAttribute($column, self::currentTenantKey());
-            $media->setAttribute(MediaLibraryConfig::tenantTypeColumn(), self::currentTenantType());
+            $tenantKey = self::currentTenantKey();
+
+            // Nothing to stamp, and nothing to touch: writing a null type would
+            // name a column an application that has not migrated does not have.
+            if ($tenantKey === null) {
+                return;
+            }
+
+            $media->setAttribute($column, $tenantKey);
+
+            if (self::tracksTenantType()) {
+                $media->setAttribute(MediaLibraryConfig::tenantTypeColumn(), self::currentTenantType());
+            }
         });
     }
 
@@ -110,6 +124,21 @@ trait BelongsToTenant
         } catch (Throwable) {
             return null;
         }
+    }
+
+    /**
+     * Whether the type column is actually there.
+     *
+     * The column arrived after tenancy did, so an application that upgrades
+     * without migrating must keep working rather than write a column it has
+     * not got. Resolved once: this is consulted on every query.
+     */
+    protected static function tracksTenantType(): bool
+    {
+        return static::$tracksTenantType ??= Schema::hasColumn(
+            MediaLibraryConfig::table('media'),
+            MediaLibraryConfig::tenantTypeColumn(),
+        );
     }
 
     /**

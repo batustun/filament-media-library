@@ -5,7 +5,9 @@ declare(strict_types=1);
 use Batustun\FilamentMediaLibrary\Models\Media;
 use Batustun\FilamentMediaLibrary\Tests\Fixtures\PermissionedUser;
 use Filament\Facades\Filament;
+use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\URL;
 use Illuminate\Support\Str;
@@ -197,3 +199,27 @@ it('warns when tenant rows do not say which kind of tenant they belong to', func
     )) < 2,
     'Needs more than one tenanted panel to be a problem.',
 );
+
+it('still works for an application that upgraded without migrating', function () {
+    // The type column arrived after tenancy did. Writing it unconditionally
+    // named a column such an application does not have, and every upload — with
+    // tenancy on or off — failed on the insert.
+    Schema::table('media_library_items', function (Blueprint $table): void {
+        $table->dropIndex('fml_tenant_index');
+        $table->dropColumn('tenant_type');
+    });
+
+    (new ReflectionProperty(Media::class, 'tracksTenantType'))->setValue(null, null);
+
+    config()->set('filament-media-library.tenancy.enabled', false);
+
+    Storage::disk('public')->put('vault/plain.png', 'x');
+
+    $media = Media::create([
+        'disk' => 'public', 'path' => 'vault/plain.png', 'directory' => 'vault',
+        'name' => 'plain.png', 'kind' => 'image', 'size' => 10,
+    ]);
+
+    expect($media->exists)->toBeTrue()
+        ->and(Media::count())->toBe(1);
+});
