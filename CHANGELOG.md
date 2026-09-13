@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.8.1] - 2026-09-13
+
+### Added
+- `media-library:doctor` now reports tenancy: whether it is on, which column it
+  uses, how many distinct tenants are in the index, and how many rows belong to
+  no tenant and so are invisible to every one of them. With tenancy off it says
+  plainly that every panel sees every file, which is what "the tenant still sees
+  everything" almost always turns out to be.
+- The tenant scope is now tested inside a real tenanted Filament panel — the
+  picker, the folder sidebar and the stamping of new uploads — rather than only
+  against a key held by hand. It holds.
+
 ## [1.8.0] - 2026-09-13
 
 ### Security
@@ -437,7 +449,8 @@ First public release.
 - English, Turkish, German, French, Spanish, Italian, Dutch, Brazilian
   Portuguese, Russian and Arabic. RTL works without extra rules.
 
-[Unreleased]: https://github.com/batustun/filament-media-library/compare/v1.8.0...HEAD
+[Unreleased]: https://github.com/batustun/filament-media-library/compare/v1.8.1...HEAD
+[1.8.1]: https://github.com/batustun/filament-media-library/compare/v1.8.0...v1.8.1
 [1.8.0]: https://github.com/batustun/filament-media-library/compare/v1.7.0...v1.8.0
 [1.7.0]: https://github.com/batustun/filament-media-library/compare/v1.6.0...v1.7.0
 [1.6.0]: https://github.com/batustun/filament-media-library/compare/v1.5.2...v1.6.0

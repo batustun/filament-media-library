@@ -12,6 +12,7 @@ use Batustun\FilamentMediaLibrary\Support\MediaLibraryConfig;
 use Batustun\FilamentMediaLibrary\Support\MimeKindResolver;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\Storage;
 
 use function Laravel\Prompts\confirm;
@@ -64,6 +65,8 @@ class DoctorCommand extends Command
                 [__('filament-media-library::filament-media-library.doctor.duplicates'), count($duplicates)],
             ],
         );
+
+        $this->reportTenancy();
 
         if (! $reachable) {
             // The other two checks read the database and still stand, so the
@@ -190,5 +193,57 @@ class DoctorCommand extends Command
             ->selectRaw('max(size) as size')
             ->get()
             ->all();
+    }
+
+    /**
+     * What the library thinks about tenancy right now.
+     *
+     * "Why does a tenant still see everything" is almost always answered here:
+     * the setting is off, or a cached config is still holding the old value.
+     */
+    private function reportTenancy(): void
+    {
+        $enabled = MediaLibraryConfig::tenancyEnabled();
+        $column = MediaLibraryConfig::tenantColumn();
+
+        if (! $enabled) {
+            $this->components->warn(
+                'Tenancy is OFF. Every panel — tenanted or not — sees every file. '
+                .'Set MEDIA_LIBRARY_TENANCY=true, then run `php artisan config:clear`.',
+            );
+
+            return;
+        }
+
+        if (! Schema::hasColumn((new Media)->getTable(), $column)) {
+            $this->components->error(
+                "Tenancy is ON but the [{$column}] column is missing. Run `php artisan migrate`.",
+            );
+
+            return;
+        }
+
+        $base = Media::withoutGlobalScope(Media::TENANT_SCOPE);
+
+        $untenanted = (clone $base)->whereNull($column)->count();
+        $tenants = (clone $base)->whereNotNull($column)->distinct()->count($column);
+
+        $this->table(
+            ['Tenancy', 'Value'],
+            [
+                ['Enabled', 'yes'],
+                ['Column', $column],
+                ['Distinct tenants', $tenants],
+                ['Rows with no tenant', $untenanted],
+                ['Shared with every tenant', MediaLibraryConfig::tenancyShares() ? 'yes' : 'no'],
+            ],
+        );
+
+        if ($untenanted > 0 && ! MediaLibraryConfig::tenancyShares()) {
+            $this->components->warn(
+                "{$untenanted} rows belong to no tenant, so no tenant can see them. "
+                .'Backfill them, or set MEDIA_LIBRARY_TENANCY_SHARED=true to share them with everyone.',
+            );
+        }
     }
 }

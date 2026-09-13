@@ -158,3 +158,23 @@ it('shows a tenant only its own media when sharing is off', function () {
         expect(Media::pluck('id')->all())->toBe([$mine->id]);
     });
 });
+
+it('says so when the doctor is asked and tenancy is off', function () {
+    // "Why does a tenant still see everything" is almost always this.
+    config()->set('filament-media-library.tenancy.enabled', false);
+
+    $this->artisan('media-library:doctor', ['--disk' => 'public'])
+        ->expectsOutputToContain('Tenancy is OFF')
+        ->assertSuccessful();
+});
+
+it('reports how many rows no tenant can reach', function () {
+    Media::withoutGlobalScope(Media::TENANT_SCOPE)->create([
+        'disk' => 'public', 'path' => 'vault/orphan.png', 'directory' => 'vault',
+        'name' => 'orphan.png', 'kind' => 'image', 'size' => 10, 'tenant_id' => null,
+    ]);
+
+    $this->artisan('media-library:doctor', ['--disk' => 'public'])
+        ->expectsOutputToContain('belong to no tenant')
+        ->assertSuccessful();
+});

@@ -6,6 +6,7 @@ namespace Batustun\FilamentMediaLibrary\Tests;
 
 use Batustun\FilamentMediaLibrary\FilamentMediaLibraryServiceProvider;
 use Batustun\FilamentMediaLibrary\Tests\Fixtures\PermissionedUser;
+use Batustun\FilamentMediaLibrary\Tests\Fixtures\TenantPanelProvider;
 use Batustun\FilamentMediaLibrary\Tests\Fixtures\TestPanelProvider;
 use BladeUI\Heroicons\BladeHeroiconsServiceProvider;
 use BladeUI\Icons\BladeIconsServiceProvider;
@@ -71,6 +72,7 @@ abstract class TestCase extends Orchestra
 
             FilamentMediaLibraryServiceProvider::class,
             TestPanelProvider::class,
+            TenantPanelProvider::class,
         ]));
     }
 
