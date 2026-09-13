@@ -7,6 +7,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.9.2] - 2026-09-13
+
+### Fixed
+- A page could return a 500 with *"Typed property
+  Filament\Schemas\Components\Component::$container must not be accessed
+  before initialization"*.
+
+  Filament renders an action's modal wherever the action is rendered, including
+  a re-render at the end of a Livewire request — and the field the picker's
+  closure holds is the instance `configureUsing` saw, which for a repeater's
+  child schema is a blueprint that is not always attached to anything. A
+  detached field cannot say what it holds or where it writes: 1.7.0 began asking
+  it for its state, and that turned a phantom re-render into a fatal.
+
+  The modal now renders nothing at all when the field is detached, rather than
+  taking the page down, and reading the field's current value — a convenience,
+  not a requirement — can no longer fail the modal. The picker inside a repeater
+  is covered by a test, so the guard cannot quietly disable it.
+
 ## [1.9.1] - 2026-09-13
 
 ### Fixed
@@ -480,7 +499,8 @@ First public release.
 - English, Turkish, German, French, Spanish, Italian, Dutch, Brazilian
   Portuguese, Russian and Arabic. RTL works without extra rules.
 
-[Unreleased]: https://github.com/batustun/filament-media-library/compare/v1.9.1...HEAD
+[Unreleased]: https://github.com/batustun/filament-media-library/compare/v1.9.2...HEAD
+[1.9.2]: https://github.com/batustun/filament-media-library/compare/v1.9.1...v1.9.2
 [1.9.1]: https://github.com/batustun/filament-media-library/compare/v1.9.0...v1.9.1
 [1.9.0]: https://github.com/batustun/filament-media-library/compare/v1.8.1...v1.9.0
 [1.8.1]: https://github.com/batustun/filament-media-library/compare/v1.8.0...v1.8.1
