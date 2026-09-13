@@ -76,6 +76,7 @@ class ChunkedUploadController extends Controller
             $media = Media::actingForTenant(
                 SignedMedia::tenantKey($request),
                 fn (): Media => $this->assemble($service, $directory, $name, $total, $validated, $request),
+                SignedMedia::tenantType($request),
             );
         } catch (Throwable $e) {
             $this->cleanUp($directory);

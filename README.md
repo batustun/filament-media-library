@@ -363,6 +363,16 @@ downloads, image edits and chunked uploads which run outside the panel, where
 Filament knows of no tenant — so the links it mints are **signed**, and the
 signature is what vouches for the one file it names.
 
+Items record **which kind** of tenant they belong to as well as which one.
+Applications really do have two tenanted panels — restaurants in one, sellers in
+another — and their primary keys run in separate sequences, so both have a
+tenant 1. On the key alone those two were the same tenant.
+
+Rows written before the `tenant_type` column existed carry no type and stay
+visible to a tenant with the matching key, so upgrading hides nothing. If your
+application has more than one tenanted panel, backfill that column —
+`media-library:doctor` counts the rows that need it.
+
 The `tenant_id` column exists either way, so turning this on later needs no
 migration. Rows written before you turned it on belong to no tenant, so:
 

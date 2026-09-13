@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 use Batustun\FilamentMediaLibrary\Livewire\MediaPicker;
 use Batustun\FilamentMediaLibrary\Models\Media;
+use Batustun\FilamentMediaLibrary\Tests\Fixtures\Marketplace;
 use Batustun\FilamentMediaLibrary\Tests\Fixtures\Workspace;
 use Filament\Facades\Filament;
 use Illuminate\Database\Schema\Blueprint;
@@ -47,7 +48,8 @@ beforeEach(function () {
 
         Media::withoutGlobalScope(Media::TENANT_SCOPE)->create([
             'disk' => 'public', 'path' => 'vault/'.$name, 'directory' => 'vault',
-            'name' => $name, 'kind' => 'image', 'size' => 10, 'tenant_id' => $tenant,
+            'name' => $name, 'kind' => 'image', 'size' => 10,
+            'tenant_id' => $tenant, 'tenant_type' => $tenant === null ? null : Workspace::class,
         ]);
     }
 
@@ -92,10 +94,57 @@ it('keeps the folder sidebar inside the tenant as well', function () {
 
     Media::withoutGlobalScope(Media::TENANT_SCOPE)->create([
         'disk' => 'public', 'path' => 'theirsecret/x.png', 'directory' => 'theirsecret',
-        'name' => 'x.png', 'kind' => 'image', 'size' => 10, 'tenant_id' => 2,
+        'name' => 'x.png', 'kind' => 'image', 'size' => 10,
+        'tenant_id' => 2, 'tenant_type' => Workspace::class,
     ]);
 
     $html = tenantPickerHtml();
 
     expect($html)->not->toContain('theirsecret');
+});
+
+it('keeps two kinds of tenant apart even when they share a key', function () {
+    // An application can have more than one tenanted panel, and their primary
+    // keys are separate sequences: both have a tenant 1. Keyed on the id alone
+    // those two were the same tenant and saw each other's media.
+    Schema::create('marketplaces', function (Blueprint $table): void {
+        $table->id();
+    });
+
+    $marketplace = Marketplace::create([]);
+
+    expect($marketplace->getKey())->toBe(1); // the same key as workspace "Mine"
+
+    Storage::disk('public')->put('vault/marketplace.png', 'x');
+
+    Media::actingForTenant(
+        $marketplace->getKey(),
+        fn () => Media::create([
+            'disk' => 'public', 'path' => 'vault/marketplace.png', 'directory' => 'vault',
+            'name' => 'marketplace.png', 'kind' => 'image', 'size' => 10,
+        ]),
+        $marketplace->getMorphClass(),
+    );
+
+    // The workspace panel is still current, on workspace 1.
+    expect(tenantPickerHtml())->not->toContain('marketplace.png');
+
+    // And the marketplace does not see the workspace's file either.
+    Media::actingForTenant($marketplace->getKey(), function (): void {
+        expect(Media::pluck('name')->all())->toBe(['marketplace.png']);
+    }, $marketplace->getMorphClass());
+});
+
+it('still shows a library written before the type column existed', function () {
+    // Upgrading must not hide what an existing single-tenant install already
+    // has: those rows carry a key and no type.
+    Storage::disk('public')->put('vault/legacy.png', 'x');
+
+    Media::withoutGlobalScope(Media::TENANT_SCOPE)->create([
+        'disk' => 'public', 'path' => 'vault/legacy.png', 'directory' => 'vault',
+        'name' => 'legacy.png', 'kind' => 'image', 'size' => 10,
+        'tenant_id' => 1, 'tenant_type' => null,
+    ]);
+
+    expect(tenantPickerHtml())->toContain('legacy.png');
 });

@@ -275,6 +275,19 @@ final class MediaLibraryConfig
         return (bool) self::get('tenancy.shared', false);
     }
 
+    /**
+     * The column recording which kind of tenant an item belongs to.
+     *
+     * Two tenanted panels have separate key sequences, so both have a tenant 1;
+     * without the type they are the same tenant.
+     */
+    public static function tenantTypeColumn(): string
+    {
+        $column = (string) self::get('tenancy.type_column', 'tenant_type');
+
+        return $column !== '' ? $column : 'tenant_type';
+    }
+
     public static function tenantColumn(): string
     {
         $column = (string) self::get('tenancy.column', 'tenant_id');

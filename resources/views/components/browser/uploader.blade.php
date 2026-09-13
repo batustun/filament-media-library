@@ -14,7 +14,10 @@
     // Signed, because the endpoint runs outside the panel: the signature is
     // what tells it which tenant the upload belongs to.
     $chunkEndpoint = MediaLibraryConfig::chunkedUploadsEnabled() && Route::has('filament-media-library.chunk')
-        ? URL::signedRoute('filament-media-library.chunk', array_filter(['tenant' => Media::currentTenantKey()]))
+        ? URL::signedRoute('filament-media-library.chunk', array_filter([
+            'tenant' => Media::currentTenantKey(),
+            'tenant_type' => Media::currentTenantType(),
+        ]))
         : null;
 
     $destination = $this->uploadTargetDirectory();

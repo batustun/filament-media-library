@@ -7,6 +7,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.9.0] - 2026-09-13
+
+### Security
+- **Two tenanted panels shared a library.** An application can serve tenants
+  from more than one panel — restaurants in one, sellers in another — and their
+  primary keys run in separate sequences, so both have a tenant 1. Items
+  recorded only the key, so those two were the same tenant and each panel saw
+  the other's media.
+
+  Items now record which kind of tenant they belong to as well, in a new
+  `tenant_type` column. Run `php artisan migrate`. Rows written before it
+  existed carry no type and stay visible to a tenant with the matching key, so
+  upgrading hides nothing — but an application with more than one tenanted panel
+  should backfill them, and `media-library:doctor` now counts the rows that need
+  it and says why.
+
+### Fixed
+- An empty library made the picker shorter than a full one, leaving the modal
+  with a band of dead space under the results. The results area now fills the
+  same height whether it holds forty thumbnails or none.
+
 ## [1.8.1] - 2026-09-13
 
 ### Added
@@ -449,7 +470,8 @@ First public release.
 - English, Turkish, German, French, Spanish, Italian, Dutch, Brazilian
   Portuguese, Russian and Arabic. RTL works without extra rules.
 
-[Unreleased]: https://github.com/batustun/filament-media-library/compare/v1.8.1...HEAD
+[Unreleased]: https://github.com/batustun/filament-media-library/compare/v1.9.0...HEAD
+[1.9.0]: https://github.com/batustun/filament-media-library/compare/v1.8.1...v1.9.0
 [1.8.1]: https://github.com/batustun/filament-media-library/compare/v1.8.0...v1.8.1
 [1.8.0]: https://github.com/batustun/filament-media-library/compare/v1.7.0...v1.8.0
 [1.7.0]: https://github.com/batustun/filament-media-library/compare/v1.6.0...v1.7.0

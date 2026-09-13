@@ -35,12 +35,23 @@ final class SignedMedia
      */
     public static function tenantKey(Request $request): ?string
     {
+        return self::signedQuery($request, 'tenant');
+    }
+
+    /** Which kind of tenant, so two panels keyed 1 are not the same tenant. */
+    public static function tenantType(Request $request): ?string
+    {
+        return self::signedQuery($request, 'tenant_type');
+    }
+
+    private static function signedQuery(Request $request, string $key): ?string
+    {
         if (! $request->hasValidSignature()) {
             return null;
         }
 
-        $key = $request->query('tenant');
+        $value = $request->query($key);
 
-        return is_string($key) && $key !== '' ? $key : null;
+        return is_string($value) && $value !== '' ? $value : null;
     }
 }

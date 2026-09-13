@@ -855,10 +855,28 @@
 
 /* Results scroll rather than growing the modal past the viewport. */
 .fml-picker__scroll {
+    display: flex;
+    flex-direction: column;
     flex: 1 1 auto;
     min-block-size: 0;
     overflow-y: auto;
     padding-inline-end: 0.25rem;
+}
+
+/* An empty library must not shrink the modal: the results area fills the same
+   height whether it holds forty thumbnails or none. */
+.fml-picker .fml-results {
+    display: flex;
+    flex-direction: column;
+    min-block-size: 100%;
+}
+
+.fml-empty {
+    display: flex;
+    flex: 1 1 auto;
+    align-items: center;
+    justify-content: center;
+    min-block-size: 0;
 }
 
 /* Below md the sidebar is a disclosure stacked above the grid, so a full-height

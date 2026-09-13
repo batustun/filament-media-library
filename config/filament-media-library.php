@@ -269,6 +269,9 @@ return [
         'enabled' => (bool) env('MEDIA_LIBRARY_TENANCY', false),
         'shared' => (bool) env('MEDIA_LIBRARY_TENANCY_SHARED', false),
         'column' => 'tenant_id',
+        // Which kind of tenant, so two panels whose tenants both start at id 1
+        // are not treated as the same tenant.
+        'type_column' => 'tenant_type',
     ],
 
     /*

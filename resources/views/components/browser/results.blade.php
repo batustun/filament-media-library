@@ -11,6 +11,7 @@
 @endphp
 
 <div
+    class="fml-results"
     wire:loading.class="fml-loading"
     wire:target="search,kindFilter,sort,disk,directory,dateFrom,dateTo,gotoPage,previousPage,nextPage"
 >
@@ -36,12 +37,15 @@
     @if ($paginator->total() === 0 && $childFolders !== [])
         {{-- Folders above, no files at this level: saying "empty" would be wrong. --}}
     @elseif ($paginator->total() === 0)
-        <x-filament::empty-state
-            icon="heroicon-o-photo"
-            icon-color="gray"
-            :heading="$isFiltered ? __($t.'.messages.no_results') : __($t.'.messages.empty')"
-            :description="$isFiltered ? __($t.'.messages.no_results_hint') : __($t.'.messages.empty_hint')"
-        />
+        {{-- Fills the space a grid would, so the modal keeps one height. --}}
+        <div class="fml-empty">
+            <x-filament::empty-state
+                icon="heroicon-o-photo"
+                icon-color="gray"
+                :heading="$isFiltered ? __($t.'.messages.no_results') : __($t.'.messages.empty')"
+                :description="$isFiltered ? __($t.'.messages.no_results_hint') : __($t.'.messages.empty_hint')"
+            />
+        </div>
     @elseif ($viewMode === 'grid')
         <div class="fml-grid" role="listbox" aria-multiselectable="true" x-ref="grid">
             @foreach ($paginator as $item)

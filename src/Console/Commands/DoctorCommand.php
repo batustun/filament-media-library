@@ -10,6 +10,8 @@ use Batustun\FilamentMediaLibrary\Services\MediaIndexer;
 use Batustun\FilamentMediaLibrary\Services\MediaService;
 use Batustun\FilamentMediaLibrary\Support\MediaLibraryConfig;
 use Batustun\FilamentMediaLibrary\Support\MimeKindResolver;
+use Filament\Facades\Filament;
+use Filament\Panel;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
@@ -239,11 +241,39 @@ class DoctorCommand extends Command
             ],
         );
 
+        $typeColumn = MediaLibraryConfig::tenantTypeColumn();
+
+        if (Schema::hasColumn((new Media)->getTable(), $typeColumn)) {
+            $untyped = (clone $base)->whereNotNull($column)->whereNull($typeColumn)->count();
+            $tenantedPanels = $this->tenantedPanelCount();
+
+            if ($untyped > 0 && $tenantedPanels > 1) {
+                $this->components->warn(
+                    "{$untyped} rows record a tenant key but not which kind of tenant, and this "
+                    ."application has {$tenantedPanels} tenanted panels. Two panels whose tenants "
+                    ."both start at id 1 will each see those rows. Backfill [{$typeColumn}].",
+                );
+            }
+        }
+
         if ($untenanted > 0 && ! MediaLibraryConfig::tenancyShares()) {
             $this->components->warn(
                 "{$untenanted} rows belong to no tenant, so no tenant can see them. "
                 .'Backfill them, or set MEDIA_LIBRARY_TENANCY_SHARED=true to share them with everyone.',
             );
+        }
+    }
+
+    /** How many panels this application serves tenants from. */
+    private function tenantedPanelCount(): int
+    {
+        try {
+            return count(array_filter(
+                Filament::getPanels(),
+                fn (Panel $panel): bool => $panel->hasTenancy(),
+            ));
+        } catch (Throwable) {
+            return 0;
         }
     }
 }

@@ -32,6 +32,8 @@ trait BelongsToTenant
      */
     protected static int|string|null $tenantOverride = null;
 
+    protected static ?string $tenantTypeOverride = null;
+
     public static function bootBelongsToTenant(): void
     {
         static::addGlobalScope(self::TENANT_SCOPE, function (Builder $query): void {
@@ -39,12 +41,28 @@ trait BelongsToTenant
                 return;
             }
 
-            $column = $query->getModel()->getTable().'.'.MediaLibraryConfig::tenantColumn();
+            $table = $query->getModel()->getTable();
+            $column = $table.'.'.MediaLibraryConfig::tenantColumn();
+            $typeColumn = $table.'.'.MediaLibraryConfig::tenantTypeColumn();
+
             $tenantKey = self::currentTenantKey();
+            $tenantType = self::currentTenantType();
 
             if ($tenantKey !== null) {
-                $query->where(function (Builder $query) use ($column, $tenantKey): void {
-                    $query->where($column, $tenantKey);
+                $query->where(function (Builder $query) use ($column, $typeColumn, $tenantKey, $tenantType): void {
+                    $query->where(function (Builder $query) use ($column, $typeColumn, $tenantKey, $tenantType): void {
+                        $query->where($column, $tenantKey);
+
+                        // Rows written before the type column existed carry no
+                        // type. Matching them keeps an existing single-tenant
+                        // library visible; an application with more than one
+                        // tenanted panel should backfill it.
+                        if ($tenantType !== null) {
+                            $query->where(fn (Builder $query) => $query
+                                ->where($typeColumn, $tenantType)
+                                ->orWhereNull($typeColumn));
+                        }
+                    });
 
                     if (MediaLibraryConfig::tenancyShares()) {
                         $query->orWhereNull($column);
@@ -64,9 +82,12 @@ trait BelongsToTenant
         static::creating(function (self $media): void {
             $column = MediaLibraryConfig::tenantColumn();
 
-            if ($media->getAttribute($column) === null) {
-                $media->setAttribute($column, self::currentTenantKey());
+            if ($media->getAttribute($column) !== null) {
+                return;
             }
+
+            $media->setAttribute($column, self::currentTenantKey());
+            $media->setAttribute(MediaLibraryConfig::tenantTypeColumn(), self::currentTenantType());
         });
     }
 
@@ -92,6 +113,28 @@ trait BelongsToTenant
     }
 
     /**
+     * Which kind of tenant is in play, as its morph alias or class name.
+     */
+    public static function currentTenantType(): ?string
+    {
+        if (! MediaLibraryConfig::tenancyEnabled()) {
+            return null;
+        }
+
+        if (static::$tenantOverride !== null) {
+            return static::$tenantTypeOverride;
+        }
+
+        try {
+            $tenant = Filament::getTenant();
+        } catch (Throwable) {
+            return null;
+        }
+
+        return $tenant?->getMorphClass();
+    }
+
+    /**
      * Run something as a given tenant.
      *
      * Used by the routes the package mints signed URLs for: the signature was
@@ -103,15 +146,19 @@ trait BelongsToTenant
      * @param  Closure(): TReturn  $callback
      * @return TReturn
      */
-    public static function actingForTenant(int|string|null $tenantKey, Closure $callback): mixed
+    public static function actingForTenant(int|string|null $tenantKey, Closure $callback, ?string $tenantType = null): mixed
     {
-        $previous = static::$tenantOverride;
+        $previousKey = static::$tenantOverride;
+        $previousType = static::$tenantTypeOverride;
+
         static::$tenantOverride = $tenantKey;
+        static::$tenantTypeOverride = $tenantType;
 
         try {
             return $callback();
         } finally {
-            static::$tenantOverride = $previous;
+            static::$tenantOverride = $previousKey;
+            static::$tenantTypeOverride = $previousType;
         }
     }
 

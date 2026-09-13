@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Batustun\FilamentMediaLibrary\Tests;
 
 use Batustun\FilamentMediaLibrary\FilamentMediaLibraryServiceProvider;
+use Batustun\FilamentMediaLibrary\Tests\Fixtures\MarketplacePanelProvider;
 use Batustun\FilamentMediaLibrary\Tests\Fixtures\PermissionedUser;
 use Batustun\FilamentMediaLibrary\Tests\Fixtures\TenantPanelProvider;
 use Batustun\FilamentMediaLibrary\Tests\Fixtures\TestPanelProvider;
@@ -73,6 +74,7 @@ abstract class TestCase extends Orchestra
             FilamentMediaLibraryServiceProvider::class,
             TestPanelProvider::class,
             TenantPanelProvider::class,
+            MarketplacePanelProvider::class,
         ]));
     }
 

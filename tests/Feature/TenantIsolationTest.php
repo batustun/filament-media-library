@@ -178,3 +178,22 @@ it('reports how many rows no tenant can reach', function () {
         ->expectsOutputToContain('belong to no tenant')
         ->assertSuccessful();
 });
+
+it('warns when tenant rows do not say which kind of tenant they belong to', function () {
+    // Two tenanted panels whose tenants both start at id 1 would each see them.
+    Media::withoutGlobalScope(Media::TENANT_SCOPE)->create([
+        'disk' => 'public', 'path' => 'vault/untyped.png', 'directory' => 'vault',
+        'name' => 'untyped.png', 'kind' => 'image', 'size' => 10,
+        'tenant_id' => 1, 'tenant_type' => null,
+    ]);
+
+    $this->artisan('media-library:doctor', ['--disk' => 'public'])
+        ->expectsOutputToContain('not which kind of tenant')
+        ->assertSuccessful();
+})->skip(
+    fn () => count(array_filter(
+        Filament::getPanels(),
+        fn ($panel) => $panel->hasTenancy(),
+    )) < 2,
+    'Needs more than one tenanted panel to be a problem.',
+);
