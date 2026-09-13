@@ -5,12 +5,13 @@ declare(strict_types=1);
 use Batustun\FilamentMediaLibrary\Filament\Components\LibraryPickerAction;
 use Batustun\FilamentMediaLibrary\Models\Media;
 use Batustun\FilamentMediaLibrary\Tests\Fixtures\PickerHost;
+use Batustun\FilamentMediaLibrary\Tests\Fixtures\RepeaterHost;
 use Filament\Actions\Action;
 use Filament\Forms\Components\FileUpload;
-use Filament\Forms\Components\Repeater;
 use Filament\Schemas\Schema;
 use Illuminate\Contracts\View\View;
 use Illuminate\Support\Facades\Storage;
+use Livewire\Livewire;
 
 /** The FileUpload on the host form, with whatever the field is holding. */
 function field(mixed $state = null): FileUpload
@@ -116,22 +117,43 @@ it('does not take the page down when the field is detached from its schema', fun
     expect(pickerActionOf(FileUpload::make('image')->disk('public'))->getModalContent())->toBeNull();
 });
 
-it('still opens for a field inside a repeater', function () {
-    // The blueprint does get a container once the repeater builds its child
-    // schema, so the picker has to keep working there — the guard above must
-    // not quietly disable it.
-    $host = new PickerHost;
-    $host->data = ['rows' => [['image' => Media::sole()->path]]];
+it('builds the modal for the field Filament mounted, not the one it captured', function () {
+    // configureUsing hands the closure the instance it saw. Inside a repeater
+    // that is a blueprint belonging to no item, and on a page of many fields it
+    // is not necessarily the one being opened — Filament says which by mounting
+    // the action with the schema component. Depending on the captured field
+    // rendered an empty modal, or none at all.
+    $captured = FileUpload::make('image')->disk('public');
+    $mounted = field(Media::sole()->path);
 
-    $repeater = Repeater::make('rows')->schema([
-        FileUpload::make('image')->disk('public')->directory('categories'),
-    ]);
-    $repeater->container(Schema::make($host)->components([$repeater])->statePath('data'));
+    $action = LibraryPickerAction::for($captured, returns: 'path')->schemaComponent($mounted);
 
-    // Reading the child schema's components is what attaches them, and those
-    // are the instances Filament renders.
-    $field = collect($repeater->getChildSchema()?->getComponents() ?? [])
-        ->first(fn (mixed $component): bool => $component instanceof FileUpload);
+    $content = $action->getModalContent();
 
-    expect(pickerActionOf($field)->getModalContent())->not->toBeNull();
+    expect($content)->not->toBeNull();
+    expect($content->getData()['statePath'])->toBe($mounted->getStatePath());
+    expect($content->getData()['selectedIds'])->toBe([Media::sole()->id]);
+});
+
+it('opens for a field inside a repeater, on that item', function () {
+    // End to end through Filament's own mounting, on the shape of form the
+    // failing page used.
+    $host = Livewire::test(RepeaterHost::class);
+
+    preg_match('/form\\.rows\\.[a-f0-9-]{36}\\.image/', html_entity_decode($host->html(), ENT_QUOTES), $matches);
+
+    expect($matches)->not->toBeEmpty('the picker was not rendered on the repeater item');
+
+    $host->call('mountAction', LibraryPickerAction::NAME, [], ['schemaComponent' => $matches[0]]);
+
+    $instance = $host->instance();
+
+    if (! $instance instanceof RepeaterHost) {
+        throw new RuntimeException('Expected the repeater host.');
+    }
+
+    $content = $instance->getMountedAction()?->getModalContent();
+
+    expect($content)->not->toBeNull();
+    expect($content->getData()['statePath'])->toBe(str_replace('form.', 'data.', $matches[0]));
 });

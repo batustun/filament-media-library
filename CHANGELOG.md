@@ -7,6 +7,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.9.3] - 2026-09-13
+
+### Fixed
+- The picker could open as an empty modal — heading and close button, no
+  library — after 1.9.2 stopped it returning a 500 in the same place.
+
+  Both came from the same dependency. `configureUsing` hands the closure the
+  field instance it saw, and the closure had been building the modal from it
+  ever since; inside a repeater that instance is a blueprint belonging to no
+  item, and on a page of many fields it is not necessarily the one being opened.
+  Filament already says which field it is, by mounting the action with the
+  schema component — `form.rows.<uuid>.image` — so the modal is now built from
+  that, and the captured field is only a fallback for a plain, attached one.
+
+  1.9.2's guard stays for the case where neither is usable: Filament renders an
+  action's modal wherever the action is rendered, including with nothing
+  mounted, and there is no modal to build then.
+
 ## [1.9.2] - 2026-09-13
 
 ### Fixed
@@ -499,7 +517,8 @@ First public release.
 - English, Turkish, German, French, Spanish, Italian, Dutch, Brazilian
   Portuguese, Russian and Arabic. RTL works without extra rules.
 
-[Unreleased]: https://github.com/batustun/filament-media-library/compare/v1.9.2...HEAD
+[Unreleased]: https://github.com/batustun/filament-media-library/compare/v1.9.3...HEAD
+[1.9.3]: https://github.com/batustun/filament-media-library/compare/v1.9.2...v1.9.3
 [1.9.2]: https://github.com/batustun/filament-media-library/compare/v1.9.1...v1.9.2
 [1.9.1]: https://github.com/batustun/filament-media-library/compare/v1.9.0...v1.9.1
 [1.9.0]: https://github.com/batustun/filament-media-library/compare/v1.8.1...v1.9.0
