@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Batustun\FilamentMediaLibrary\Console\Commands;
 
+use Batustun\FilamentMediaLibrary\Database\Seeders\MediaPermissionSeeder;
 use Batustun\FilamentMediaLibrary\Exceptions\CannotListDisk;
 use Batustun\FilamentMediaLibrary\Models\Media;
 use Batustun\FilamentMediaLibrary\Services\MediaIndexer;
@@ -19,6 +20,7 @@ use Illuminate\Support\Facades\Storage;
 
 use function Laravel\Prompts\confirm;
 
+use Spatie\Permission\Models\Permission;
 use Throwable;
 
 /**
@@ -68,6 +70,7 @@ class DoctorCommand extends Command
             ],
         );
 
+        $this->reportPermissions();
         $this->reportTenancy();
 
         if (! $reachable) {
@@ -195,6 +198,92 @@ class DoctorCommand extends Command
             ->selectRaw('max(size) as size')
             ->get()
             ->all();
+    }
+
+    /**
+     * Whether anybody can actually open the library.
+     *
+     * Turning permissions on without seeding the rows denies every user — the
+     * super admin included, since a missing row makes the lookup throw — and
+     * the only thing the operator sees is a 403 in the browser console. It is
+     * the cheapest check here and the one that costs the most when missing.
+     */
+    private function reportPermissions(): void
+    {
+        if (! MediaLibraryConfig::permissionsEnabled()) {
+            $this->components->warn(
+                'Permission checks are OFF. Anyone who can reach the panel can use the library. '
+                .'Set MEDIA_LIBRARY_PERMISSIONS=true to gate it.',
+            );
+
+            return;
+        }
+
+        $names = array_map(
+            static fn (string $ability): string => MediaLibraryConfig::permission($ability),
+            ['view', 'upload', 'delete', 'manage'],
+        );
+
+        if (! class_exists(Permission::class)) {
+            // Permissions are on and answered by something other than spatie —
+            // a hand-rolled hasPermissionTo(), or Gate::define in the host app.
+            // There are no rows to count, so report what is being asked for.
+            $this->components->warn(
+                'Permission checks are ON and spatie/laravel-permission is not installed. '
+                .'Your user model or Gate must answer: '.implode(', ', $names).'.',
+            );
+
+            return;
+        }
+
+        $guard = MediaLibraryConfig::permissionGuard();
+
+        try {
+            $existing = Permission::query()
+                ->whereIn('name', $names)
+                ->where('guard_name', $guard)
+                ->pluck('name')
+                ->all();
+        } catch (Throwable $e) {
+            $this->components->error('Permission checks are ON but the permission table could not be read.');
+            $this->line('  Reason: '.$e->getMessage());
+            $this->line('  Nobody can open the library until these exist on guard ['.$guard.']:');
+            $this->line('    '.implode(', ', $names));
+            $this->reportSeederHint();
+
+            return;
+        }
+
+        $missing = array_values(array_diff($names, $existing));
+
+        if ($missing === []) {
+            $this->components->info(
+                'Permission checks are ON and all four rows exist on guard ['.$guard.'].',
+            );
+
+            return;
+        }
+
+        // Deliberately unwrapped lines: the whole value of this report is the
+        // command the operator is about to copy, and a wrapped class name is
+        // one they have to retype.
+        $this->components->error(sprintf(
+            'Permission checks are ON but %d of %d permission rows are missing.',
+            count($missing),
+            count($names),
+        ));
+        $this->line('  Missing on guard ['.$guard.']:');
+        $this->line('    '.implode(', ', $missing));
+        $this->line('  Every user is denied, a super admin included: a missing row');
+        $this->line('  makes the lookup throw, so no bypass is ever reached.');
+        $this->reportSeederHint();
+    }
+
+    private function reportSeederHint(): void
+    {
+        $this->line('  Seed them with:');
+        $this->line('    php artisan db:seed --class="'.MediaPermissionSeeder::class.'"');
+        $this->line('  ...or switch the gate off with MEDIA_LIBRARY_PERMISSIONS=false.');
     }
 
     /**

@@ -642,16 +642,35 @@ MEDIA_LIBRARY_PERMISSIONS=true
 ```
 
 Four abilities: `media.view`, `media.upload`, `media.delete`, `media.manage`.
-Any user model exposing `hasPermissionTo()` works —
-[spatie/laravel-permission](https://github.com/spatie/laravel-permission) is the
-common case but is **not** a hard dependency. With it installed:
+
+Each one is asked twice, in this order:
+
+1. **Laravel's Gate**, with the ability name. This is where your application
+   already keeps its rules: a `Gate::before` super-admin bypass applies here,
+   `Gate::define('media.view', ...)` applies here, and
+   [spatie/laravel-permission](https://github.com/spatie/laravel-permission)'s
+   own `Gate::before` answers the permission names from the database.
+2. **`hasPermissionTo()` on the user model**, for applications that expose
+   permissions without registering them on the Gate.
+
+spatie is the common case but is **not** a hard dependency. With it installed,
+seed the rows — *before* you switch the gate on:
 
 ```bash
 php artisan db:seed --class="Batustun\FilamentMediaLibrary\Database\Seeders\MediaPermissionSeeder"
 ```
 
+> **Turning `MEDIA_LIBRARY_PERMISSIONS=true` on without seeding denies
+> everyone**, because asking spatie about a permission that does not exist
+> throws rather than returning `false`. `php artisan media-library:doctor`
+> reports exactly this, and the denial is written to the log with the command
+> to fix it.
+
 Every entry point — the page, the Livewire picker, the JSON routes — goes
-through the same check.
+through the same check. The "Choose from Library" button hides itself from a
+user who may not view the library, and mounting the picker authorises again
+regardless: a Livewire action is a public endpoint, so a hidden button is not
+a defence.
 
 ---
 

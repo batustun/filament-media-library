@@ -7,6 +7,51 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.9.4] - 2026-09-21
+
+### Fixed
+- **A super admin was refused by the library.** Clicking *Choose from Library*
+  answered `403` on `POST /livewire/update`, and the Media Library page was
+  hidden from the navigation, for the one account an application allows
+  everything.
+
+  `Authorize` asked `hasPermissionTo()` on the user model and nothing else. A
+  Laravel application does not keep its authorisation there — it keeps it on
+  the Gate, and a super-admin bypass is a `Gate::before` callback. Calling the
+  user model directly stepped around all of it, so `$user->can(...)` said yes
+  while the library said no.
+
+  Both questions are now asked, Gate first: `Gate::before` bypasses,
+  `Gate::define` abilities and spatie's own permission gate all apply, and
+  `hasPermissionTo()` remains the fallback for user models that register
+  nothing on the Gate. A user who holds neither is still refused.
+
+- **A denial nobody could diagnose.** Switching `MEDIA_LIBRARY_PERMISSIONS=true`
+  on without seeding the rows denies every request — spatie throws on an
+  unknown permission name — and the exception was swallowed into a silent
+  `false`. The only symptom was a bare `403` in the browser console, with
+  nothing in the log.
+
+  The failed lookup is now logged once per permission name per process, naming
+  the permission and the seeder command that creates it.
+
+### Added
+- `media-library:doctor` reports the permission gate: whether it is on, whether
+  all four rows exist on the configured guard, and which are missing, with the
+  seeder command to run. It previously reported only disks and tenancy, so a
+  library nobody could open looked healthy.
+
+### Changed
+- The *Choose from Library* button hides itself from a user who cannot view the
+  library, instead of offering a modal whose only outcome is a `403`. Mounting
+  the picker still authorises: a hidden button is not a security boundary.
+
+### Internal
+- Authorisation is now tested against the real `spatie/laravel-permission` —
+  its provider, its `Gate::before`, its tables — rather than a fixture that
+  answers every question politely. The fixture could not have caught either bug
+  above, and did not.
+
 ## [1.9.3] - 2026-09-13
 
 ### Fixed
@@ -517,7 +562,8 @@ First public release.
 - English, Turkish, German, French, Spanish, Italian, Dutch, Brazilian
   Portuguese, Russian and Arabic. RTL works without extra rules.
 
-[Unreleased]: https://github.com/batustun/filament-media-library/compare/v1.9.3...HEAD
+[Unreleased]: https://github.com/batustun/filament-media-library/compare/v1.9.4...HEAD
+[1.9.4]: https://github.com/batustun/filament-media-library/compare/v1.9.3...v1.9.4
 [1.9.3]: https://github.com/batustun/filament-media-library/compare/v1.9.2...v1.9.3
 [1.9.2]: https://github.com/batustun/filament-media-library/compare/v1.9.1...v1.9.2
 [1.9.1]: https://github.com/batustun/filament-media-library/compare/v1.9.0...v1.9.1

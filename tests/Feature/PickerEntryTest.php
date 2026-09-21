@@ -4,12 +4,16 @@ declare(strict_types=1);
 
 use Batustun\FilamentMediaLibrary\Filament\Components\LibraryPickerAction;
 use Batustun\FilamentMediaLibrary\Models\Media;
+use Batustun\FilamentMediaLibrary\Support\Authorize;
+use Batustun\FilamentMediaLibrary\Tests\Fixtures\PermissionedUser;
+use Batustun\FilamentMediaLibrary\Tests\Fixtures\PermissionlessUser;
 use Batustun\FilamentMediaLibrary\Tests\Fixtures\PickerHost;
 use Batustun\FilamentMediaLibrary\Tests\Fixtures\RepeaterHost;
 use Filament\Actions\Action;
 use Filament\Forms\Components\FileUpload;
 use Filament\Schemas\Schema;
 use Illuminate\Contracts\View\View;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Storage;
 use Livewire\Livewire;
 
@@ -156,4 +160,40 @@ it('opens for a field inside a repeater, on that item', function () {
 
     expect($content)->not->toBeNull();
     expect($content->getData()['statePath'])->toBe(str_replace('form.', 'data.', $matches[0]));
+});
+
+/*
+|--------------------------------------------------------------------------
+| The button must not promise what the picker will refuse
+|--------------------------------------------------------------------------
+|
+| Mounting the picker authorises, and rightly so — a Livewire action is a
+| public endpoint. But an always-visible button whose only outcome is a bare
+| 403 in the browser console is not a security boundary, it is a dead end the
+| user cannot diagnose.
+|
+*/
+
+it('hides the library button from a user who may not view the library', function () {
+    config()->set('filament-media-library.permissions.enabled', true);
+    Authorize::forgetReported();
+
+    Auth::setUser(new PermissionlessUser(['id' => 1]));
+
+    expect(pickerActionOf(field())->isVisible())->toBeFalse();
+});
+
+it('shows the library button to a user who may view the library', function () {
+    config()->set('filament-media-library.permissions.enabled', true);
+    Authorize::forgetReported();
+
+    $user = new PermissionedUser(['id' => 1]);
+    $user->grantedPermissions = ['media.view'];
+    Auth::setUser($user);
+
+    expect(pickerActionOf(field())->isVisible())->toBeTrue();
+});
+
+it('shows the library button when permissions are switched off', function () {
+    expect(pickerActionOf(field())->isVisible())->toBeTrue();
 });

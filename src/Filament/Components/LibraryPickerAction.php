@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Batustun\FilamentMediaLibrary\Filament\Components;
 
 use Batustun\FilamentMediaLibrary\Models\Media;
+use Batustun\FilamentMediaLibrary\Support\Authorize;
 use Batustun\FilamentMediaLibrary\Support\MediaResolver;
 use Error;
 use Filament\Actions\Action;
@@ -39,6 +40,11 @@ final class LibraryPickerAction
             ->label(__($t.'.actions.select_from_library'))
             ->icon('heroicon-o-photo')
             ->color('gray')
+            // Mounting the picker authorises again — a Livewire action is a
+            // public endpoint and "the button was hidden" is not a defence.
+            // This only stops the button from promising something whose single
+            // outcome would be a bare 403 in the browser console.
+            ->visible(fn (): bool => Authorize::check('view'))
             ->modalHeading(__($t.'.navigation.label'))
             ->modalWidth('7xl')
             // The picker owns its own footer, so Filament renders none: two
