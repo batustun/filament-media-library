@@ -119,6 +119,7 @@ return [
     ],
 
     'messages' => [
+        'items_count' => ':count élément|:count éléments',
         'selection_failed' => 'La sélection n’a pas pu être insérée dans le champ',
         'reused_hint' => 'Il est sélectionné ci-dessous — aucune seconde copie n’a été stockée.',
         'preview_truncated' => 'Seul le début de ce fichier est affiché',

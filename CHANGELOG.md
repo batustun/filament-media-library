@@ -7,6 +7,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.9.7] - 2026-10-16
+
+### Fixed
+- **A folder card showed a raw translation key.** Under every folder the grid
+  printed `filament-media-library::filament-media-library.messages.items_count`
+  instead of "3 items": the key was used by the folder cards but defined in no
+  language file. It is now defined in all ten, with the plural forms each
+  language needs.
+
+### Added
+- A test that every translation key named in a view or a class exists in the
+  English file, so a key that is used but never written can no longer ship.
+
 ## [1.9.6] - 2026-10-16
 
 ### Fixed

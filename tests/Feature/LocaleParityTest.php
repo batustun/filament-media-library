@@ -81,3 +81,43 @@ it('keeps every :placeholder that English uses in each locale', function () {
         }
     }
 });
+
+it('defines every translation key the views and classes ask for', function () {
+    $en = require __DIR__.'/../../resources/lang/en/filament-media-library.php';
+    $has = function (array $tree, string $key): bool {
+        foreach (explode('.', $key) as $part) {
+            if (! is_array($tree) || ! array_key_exists($part, $tree)) {
+                return false;
+            }
+
+            $tree = $tree[$part];
+        }
+
+        return true;
+    };
+
+    $missing = [];
+    $files = new RecursiveIteratorIterator(new RecursiveDirectoryIterator(dirname(__DIR__, 2)));
+
+    foreach ($files as $file) {
+        $path = $file->getPathname();
+
+        if (! $file->isFile() || ! preg_match('#/(resources/views|src)/.+\.php$#', $path)) {
+            continue;
+        }
+
+        $source = (string) file_get_contents($path);
+
+        preg_match_all('/\$t\s*\.\s*\'\.([a-z0-9_.]+)\'/i', $source, $viaPrefix);
+        preg_match_all('/filament-media-library::filament-media-library\.([a-z0-9_.]+)[\'"]/i', $source, $viaNamespace);
+
+        foreach ([...$viaPrefix[1], ...$viaNamespace[1]] as $key) {
+            // A key ending in a dot is the head of a dynamic one ('kinds.'.$kind).
+            if (! str_ends_with($key, '.') && ! $has($en, $key)) {
+                $missing[] = $key.' ('.basename($path).')';
+            }
+        }
+    }
+
+    expect($missing)->toBe([]);
+});
