@@ -32,7 +32,13 @@ trait BrowsesMediaFolders
 
     protected function cacheKey(string $suffix): string
     {
-        return "filament-media-library:{$suffix}:{$this->disk}";
+        // The tenant is part of the key: the cached folder tree, usage counts
+        // and tags are derived from the tenant-scoped query, so a key without
+        // it would hand one tenant another's folder names.
+        $tenant = Media::currentTenantKey();
+        $scope = $tenant === null ? '' : ':'.Media::currentTenantType().'#'.$tenant;
+
+        return "filament-media-library:{$suffix}:{$this->disk}{$scope}";
     }
 
     /**

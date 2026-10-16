@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use Batustun\FilamentMediaLibrary\Filament\Pages\MediaLibrary;
 use Batustun\FilamentMediaLibrary\Models\Media;
 use Batustun\FilamentMediaLibrary\Tests\Fixtures\PermissionedUser;
 use Filament\Facades\Filament;
@@ -222,4 +223,17 @@ it('still works for an application that upgraded without migrating', function ()
 
     expect($media->exists)->toBeTrue()
         ->and(Media::count())->toBe(1);
+});
+
+it('keeps the browser cache apart per tenant', function () {
+    $page = new MediaLibrary;
+    $page->disk = 'public';
+
+    $key = fn () => (new ReflectionMethod($page, 'cacheKey'))->invoke($page, 'folders');
+
+    $one = Media::actingForTenant(1, $key, 'seller');
+    $two = Media::actingForTenant(2, $key, 'seller');
+    $otherType = Media::actingForTenant(1, $key, 'restaurant');
+
+    expect($one)->not->toBe($two)->and($one)->not->toBe($otherType);
 });
