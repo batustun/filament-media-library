@@ -119,6 +119,12 @@ class MediaWriter
         return ltrim(($directory === '' ? '' : $directory.'/').$filename, '/');
     }
 
+    /** Whether the bytes on the disk will differ from the bytes uploaded. */
+    public function rewrites(?string $mimeType, string $filename): bool
+    {
+        return $this->shouldSanitize($mimeType, $filename);
+    }
+
     private function shouldSanitize(?string $mimeType, string $filename): bool
     {
         return MediaLibraryConfig::sanitizesSvg() && SvgSanitizer::isSvg($mimeType, $filename);

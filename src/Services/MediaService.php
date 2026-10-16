@@ -115,7 +115,7 @@ class MediaService
             'title' => null,
             'mime_type' => $mimeType,
             'kind' => MimeKindResolver::fromMime($mimeType, $filename)->value,
-            'size' => (int) (Storage::disk($disk)->size($path) ?: $file->getSize() ?: 0),
+            'size' => $this->writtenSize($file, $disk, $path, $this->writer->rewrites($mimeType, $filename)),
             'width' => $width,
             'height' => $height,
             'duration' => null,
@@ -127,6 +127,34 @@ class MediaService
         $this->dispatchConversions($media);
 
         return $media;
+    }
+
+    /**
+     * The size of what was just written.
+     *
+     * An upload is streamed as it is, so the local file is exactly what landed
+     * on the disk and no question needs asking. Asking costs a network round
+     * trip per upload, and on an adapter that lists a directory to answer
+     * (BunnyCDN Storage does) a response it cannot parse used to fail an
+     * upload that had already succeeded, leaving the file on the disk and no
+     * row in the library.
+     *
+     * A rewritten file (a sanitised SVG) is different bytes, so the disk is
+     * asked, and the local size stands in only if it cannot answer.
+     */
+    private function writtenSize(UploadedFile|File $file, string $disk, string $path, bool $rewritten): int
+    {
+        $local = (int) $file->getSize();
+
+        if (! $rewritten && $local > 0) {
+            return $local;
+        }
+
+        try {
+            return (int) Storage::disk($disk)->size($path) ?: $local;
+        } catch (Throwable) {
+            return $local;
+        }
     }
 
     /**
@@ -351,7 +379,7 @@ class MediaService
         $media->forceFill([
             'mime_type' => $mimeType,
             'kind' => MimeKindResolver::fromMime($mimeType, $media->name)->value,
-            'size' => (int) (Storage::disk($media->disk)->size($media->path) ?: $file->getSize() ?: 0),
+            'size' => $this->writtenSize($file, $media->disk, $media->path, $this->writer->rewrites($mimeType, (string) $media->name)),
             'width' => $width,
             'height' => $height,
             'hash' => $this->hashFor($file),

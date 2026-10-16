@@ -7,6 +7,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.9.6] - 2026-10-16
+
+### Fixed
+- **An upload that had already reached the disk failed, and left no row.**
+  After writing a file, the library asked the disk for its size. On BunnyCDN
+  Storage the flysystem adapter answers that by listing the directory, and a
+  timestamp it could not parse raised `Call to a member function getTimestamp()
+  on false`. The file stayed on the disk, nothing was indexed, and the browser
+  showed an empty library.
+
+  The size now comes from the uploaded file itself, which is exactly what was
+  streamed, so no round trip is made. Only a rewritten file (a sanitised SVG)
+  is measured on the disk, and a disk that cannot answer no longer fails the
+  upload.
+
 ## [1.9.5] - 2026-10-16
 
 ### Security

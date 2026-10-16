@@ -4,8 +4,11 @@ declare(strict_types=1);
 
 use Batustun\FilamentMediaLibrary\Models\Media;
 use Batustun\FilamentMediaLibrary\Services\MediaService;
+use Batustun\FilamentMediaLibrary\Tests\Fixtures\SizelessFilesystem;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
+use League\Flysystem\Filesystem;
+use League\Flysystem\InMemory\InMemoryFilesystemAdapter;
 
 it('stores an upload on any flysystem disk and indexes it', function (string $disk) {
     Storage::fake($disk);
@@ -104,4 +107,25 @@ it('keeps the url and path stable when renaming, so existing references survive'
         ->and($media->fresh()->publicUrl())->toBe($url);
 
     Storage::disk('public')->assertExists($path);
+});
+
+it('keeps an upload whose disk cannot report a size afterwards', function () {
+    config()->set('filesystems.disks.sizeless', ['driver' => 'sizeless']);
+
+    Storage::extend('sizeless', function (): SizelessFilesystem {
+        $adapter = new InMemoryFilesystemAdapter;
+
+        return new SizelessFilesystem(
+            new Filesystem($adapter),
+            $adapter,
+        );
+    });
+
+    $media = app(MediaService::class)->store(
+        UploadedFile::fake()->createWithContent('photo.png', 'twelve bytes'),
+        'sizeless',
+        'branches',
+    );
+
+    expect($media->exists)->toBeTrue()->and($media->size)->toBe(12);
 });
