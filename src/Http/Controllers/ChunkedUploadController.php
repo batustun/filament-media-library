@@ -8,6 +8,7 @@ use Batustun\FilamentMediaLibrary\Models\Media;
 use Batustun\FilamentMediaLibrary\Services\MediaService;
 use Batustun\FilamentMediaLibrary\Support\Authorize;
 use Batustun\FilamentMediaLibrary\Support\MediaLibraryConfig;
+use Batustun\FilamentMediaLibrary\Support\MimeKindResolver;
 use Batustun\FilamentMediaLibrary\Support\SignedMedia;
 use Batustun\FilamentMediaLibrary\Support\UploadGuard;
 use Illuminate\Http\JsonResponse;
@@ -32,6 +33,9 @@ class ChunkedUploadController extends Controller
 {
     /** Hard ceiling, so a crafted request cannot ask the server to track a million parts. */
     private const MAX_CHUNKS = 10000;
+
+    /** An abandoned upload is swept after this many seconds. */
+    private const STALE_AFTER = 86400;
 
     public function store(Request $request, MediaService $service): JsonResponse
     {
@@ -61,13 +65,40 @@ class ChunkedUploadController extends Controller
             return response()->json(['ok' => false, 'message' => $violation], 422);
         }
 
-        $directory = $this->chunkDirectory($uuid);
+        $directory = $this->chunkDirectory($request, $uuid);
+
+        if ($index === 0) {
+            $this->pruneStale();
+        }
+
         File::ensureDirectoryExists($directory, 0755, true);
+
+        // The cap is on what has actually arrived, not on what the request
+        // claims: `total` and `index` are the client's word, the bytes are not.
+        $received = $this->bytesReceived($directory) + (int) $request->file('chunk')->getSize();
+
+        $maxBytes = MediaLibraryConfig::maxUploadSizeKb() * 1024;
+
+        if ($maxBytes > 0 && $received > $maxBytes) {
+            $this->cleanUp($directory);
+
+            return response()->json([
+                'ok' => false,
+                'message' => __('filament-media-library::filament-media-library.validation.too_large', [
+                    'max' => MimeKindResolver::formatBytes($maxBytes),
+                    'size' => MimeKindResolver::formatBytes($received),
+                ]),
+            ], 413);
+        }
 
         $request->file('chunk')->move($directory, sprintf('%06d.part', $index));
 
         if ($index + 1 < $total) {
             return response()->json(['ok' => true, 'received' => $index + 1, 'total' => $total]);
+        }
+
+        if (count(glob($directory.'/*.part') ?: []) !== $total) {
+            return response()->json(['ok' => false, 'message' => 'The upload is missing some of its parts.'], 422);
         }
 
         try {
@@ -158,11 +189,34 @@ class ChunkedUploadController extends Controller
         return null;
     }
 
-    private function chunkDirectory(string $uuid): string
+    private function chunkDirectory(Request $request, string $uuid): string
     {
         // Str::uuid validation above already constrains this, but the path is
-        // rebuilt from a sanitised value rather than the raw input.
-        return storage_path('app/filament-media-library-chunks/'.Str::of($uuid)->replaceMatches('/[^a-f0-9-]/i', ''));
+        // rebuilt from a sanitised value rather than the raw input. The owner
+        // is part of the path, so knowing another user's uuid reaches nothing.
+        $owner = Str::of((string) $request->user()?->getAuthIdentifier())->replaceMatches('/[^a-zA-Z0-9_-]/', '');
+
+        return self::chunkRoot().'/'.$owner.'/'.Str::of($uuid)->replaceMatches('/[^a-f0-9-]/i', '');
+    }
+
+    private static function chunkRoot(): string
+    {
+        return storage_path('app/filament-media-library-chunks');
+    }
+
+    private function bytesReceived(string $directory): int
+    {
+        return array_sum(array_map('filesize', glob($directory.'/*.part') ?: []));
+    }
+
+    /** Removes uploads that were started and never finished. */
+    private function pruneStale(): void
+    {
+        foreach (glob(self::chunkRoot().'/*/*', GLOB_ONLYDIR) ?: [] as $stale) {
+            if (filemtime($stale) < time() - self::STALE_AFTER) {
+                File::deleteDirectory($stale);
+            }
+        }
     }
 
     private function cleanUp(string $directory): void

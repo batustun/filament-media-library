@@ -53,7 +53,7 @@ it('cleans up the chunk directory once the file is assembled', function () {
 
     sendChunk($uuid, 0, 1, 'one.bin', 'only part')->assertCreated();
 
-    expect(is_dir(storage_path('app/filament-media-library-chunks/'.$uuid)))->toBeFalse();
+    expect(is_dir(storage_path('app/filament-media-library-chunks/1/'.$uuid)))->toBeFalse();
 });
 
 it('rejects a blocked extension on the very first chunk', function () {
@@ -116,4 +116,41 @@ it('removes abandoned chunk directories', function () {
         ->and(is_dir($fresh))->toBeTrue();
 
     File::deleteDirectory(storage_path('app/filament-media-library-chunks'));
+});
+
+it('refuses an upload that outgrows the size limit, however many parts it claims', function () {
+    config()->set('filament-media-library.max_upload_size_kb', 1);
+    $uuid = (string) Str::uuid();
+
+    sendChunk($uuid, 0, 5, 'big.bin', str_repeat('a', 700))->assertOk();
+    sendChunk($uuid, 1, 5, 'big.bin', str_repeat('a', 700))->assertStatus(413);
+
+    expect(is_dir(storage_path('app/filament-media-library-chunks/1/'.$uuid)))->toBeFalse()
+        ->and(Media::count())->toBe(0);
+});
+
+it('keeps one user\'s upload out of reach of another who knows its uuid', function () {
+    $uuid = (string) Str::uuid();
+
+    sendChunk($uuid, 0, 2, 'mine.bin', 'first-');
+
+    test()->actingAs(new PermissionlessUser(['id' => 2]))
+        ->postJson('/media-library/chunk', [
+            'uuid' => $uuid, 'index' => 1, 'total' => 2, 'name' => 'mine.bin',
+            'chunk' => UploadedFile::fake()->createWithContent('chunk', 'injected'),
+            'disk' => 'public',
+        ])
+        ->assertStatus(422);
+
+    expect(Media::count())->toBe(0);
+});
+
+it('sweeps abandoned uploads when a new one starts', function () {
+    $stale = storage_path('app/filament-media-library-chunks/9/'.Str::uuid());
+    File::ensureDirectoryExists($stale);
+    touch($stale, time() - 172800);
+
+    sendChunk((string) Str::uuid(), 0, 2, 'new.bin', 'x')->assertOk();
+
+    expect(is_dir($stale))->toBeFalse();
 });

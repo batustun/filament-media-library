@@ -7,6 +7,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.9.5] - 2026-10-16
+
+### Security
+- **Chunked uploads had no size ceiling.** `total` and `index` come from the
+  client, and nothing added up what had actually arrived, so a crafted client
+  could keep appending parts past `max_upload_size_kb`. The running total of
+  received bytes is now checked on every part; the upload is discarded and
+  answered `413` the moment it crosses the limit.
+- **A chunk directory belonged to whoever knew its uuid.** The directory is now
+  bound to the authenticated user, so another user's parts cannot be appended
+  to or assembled.
+- **Abandoned uploads were never removed.** Directories left untouched for 24
+  hours are swept whenever a new upload starts.
+- An upload that is still missing parts now answers `422` instead of failing
+  with a server error.
+
 ## [1.9.4] - 2026-09-21
 
 ### Fixed
