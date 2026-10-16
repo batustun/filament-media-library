@@ -202,7 +202,7 @@ trait BelongsToTenant
      *
      * Everything else is a request that cannot say which tenant is asking.
      */
-    protected static function mayReadEveryTenant(): bool
+    public static function mayReadEveryTenant(): bool
     {
         try {
             if (Filament::getCurrentPanel()?->hasTenancy() === false) {

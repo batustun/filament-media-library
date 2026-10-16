@@ -13,7 +13,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **The folder tree, usage counts and tags were cached without the tenant.**
   The cache key named only the disk, so with tenancy on, one tenant could be
   served the folder names another tenant had cached. The key now carries the
-  tenant type and key.
+  tenant type and key. With no tenant, a scope that reads every tenant (a panel
+  without tenancy) and one that reads none no longer share an entry.
 - **Chunked uploads had no size ceiling.** `total` and `index` come from the
   client, and nothing added up what had actually arrived, so a crafted client
   could keep appending parts past `max_upload_size_kb`. The running total of

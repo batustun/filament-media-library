@@ -235,5 +235,6 @@ it('keeps the browser cache apart per tenant', function () {
     $two = Media::actingForTenant(2, $key, 'seller');
     $otherType = Media::actingForTenant(1, $key, 'restaurant');
 
-    expect($one)->not->toBe($two)->and($one)->not->toBe($otherType);
+    expect($one)->not->toBe($two)->and($one)->not->toBe($otherType)
+        ->and($key())->toEndWith(':all');
 });

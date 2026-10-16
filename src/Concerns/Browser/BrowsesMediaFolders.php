@@ -36,7 +36,13 @@ trait BrowsesMediaFolders
         // and tags are derived from the tenant-scoped query, so a key without
         // it would hand one tenant another's folder names.
         $tenant = Media::currentTenantKey();
-        $scope = $tenant === null ? '' : ':'.Media::currentTenantType().'#'.$tenant;
+
+        // With no tenant, the scope is either every tenant (a panel without
+        // tenancy) or none of them (a request that cannot say who is asking).
+        // The two must not share a cache entry.
+        $scope = $tenant === null
+            ? (MediaLibraryConfig::tenancyEnabled() ? (Media::mayReadEveryTenant() ? ':all' : ':none') : '')
+            : ':'.Media::currentTenantType().'#'.$tenant;
 
         return "filament-media-library:{$suffix}:{$this->disk}{$scope}";
     }
